@@ -1342,4 +1342,42 @@ function saveGraphNote(){
 load();
 </script>
 </body>
+  <script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js";
+  import {
+    getDatabase,
+    ref,
+    set,
+    get
+  } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyDps0encjxy3a8DIX-vEXvCvBdNdc_b3OM",
+    authDomain: "development-os-dbdbc.firebaseapp.com",
+    databaseURL: "https://development-os-dbdbc-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "development-os-dbdbc",
+    storageBucket: "development-os-dbdbc.firebasestorage.app",
+    messagingSenderId: "119596478971",
+    appId: "1:119596478971:web:05d7a405e5159e45591b5e"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+
+  // ТЕСТОВАЯ ЗАПИСЬ
+  await set(ref(db, "test/progress"), {
+    python: "Junior",
+    ai: "Новичок",
+    marketing: "Новичок"
+  });
+
+  console.log("Firebase работает!");
+
+  // ТЕСТОВОЕ ЧТЕНИЕ
+  const snapshot = await get(ref(db, "test/progress"));
+
+  if (snapshot.exists()) {
+    console.log("Данные:", snapshot.val());
+  }
+</script>
 </html>
