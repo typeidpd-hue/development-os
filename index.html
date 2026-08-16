@@ -451,56 +451,6 @@ for (const domain in DATA) {
   }
 }
 
-async function load() {
-  try {
-    const res = await window.storage.get(STORE_KEY, false);
-    if (res && res.value) {
-      const saved = JSON.parse(res.value);
-      if (saved.topics) {
-        for (const domain in DATA) {
-          for (const block in DATA[domain]) {
-            DATA[domain][block].forEach(topic => {
-              if (saved.topics[domain] && saved.topics[domain][block] && saved.topics[domain][block][topic]) {
-                state.topics[domain][block][topic] = saved.topics[domain][block][topic];
-              }
-            });
-          }
-        }
-      }
-      if (Array.isArray(saved.goals)) state.goals = saved.goals.map(g => ({ subtasks: [], ...g }));
-      if (saved.customTarget && saved.customTarget.date) state.customTarget = saved.customTarget;
-      if (saved.xp) for (const domain in DATA) if (typeof saved.xp[domain] === 'number') state.xp[domain] = saved.xp[domain];
-      if (Array.isArray(saved.notes)) state.notes = saved.notes;
-      if (saved.graphPos && typeof saved.graphPos === 'object') state.graphPos = saved.graphPos;
-    } else {
-      // migrate from v3 if present
-      const old = await window.storage.get("razvitie-full-state-v3", false).catch(()=>null);
-      if (old && old.value) {
-        const savedOld = JSON.parse(old.value);
-        if (savedOld.topics) state.topics = Object.assign(state.topics, savedOld.topics);
-        if (Array.isArray(savedOld.goals)) state.goals = savedOld.goals.map(g => ({ subtasks: [], ...g }));
-        if (savedOld.customTarget && savedOld.customTarget.date) state.customTarget = savedOld.customTarget;
-      }
-    }
-  } catch(e) {
-    console.log("Нет сохранённых данных — начинаем с нуля.", e);
-  }
-  document.getElementById('loadstate').textContent = "Прогресс сохраняется автоматически и синхронизируется с твоим аккаунтом.";
-  renderCountdown();
-  renderMilestone();
-  renderGoals();
-  renderTabs();
-  renderDomains();
-  renderJournal();
-  updateOverall();
-  renderLevel();
-  setView('graph');
-}
-
-async function save() {
-  try { await window.storage.set(STORE_KEY, JSON.stringify(state), false); }
-  catch(e) { console.error("Не удалось сохранить", e); }
-}
 
 function setView(v){
   currentView = v;
@@ -518,7 +468,143 @@ function setView(v){
   if (v==='graph') renderGraph();
   if (v==='journal') renderJournal();
 }
+const FIREBASE_URL =
+  "https://development-os-dbdbc-default-rtdb.europe-west1.firebasedatabase.app";
 
+const FIREBASE_PATH = `${FIREBASE_URL}/development-os.json`;
+
+function applySavedState(saved) {
+  if (!saved) return;
+
+  if (saved.topics) {
+    for (const domain in DATA) {
+      for (const block in DATA[domain]) {
+        DATA[domain][block].forEach(topic => {
+          if (
+            saved.topics[domain] &&
+            saved.topics[domain][block] &&
+            saved.topics[domain][block][topic]
+          ) {
+            state.topics[domain][block][topic] =
+              saved.topics[domain][block][topic];
+          }
+        });
+      }
+    }
+  }
+
+  if (Array.isArray(saved.goals)) {
+    state.goals = saved.goals.map(g => ({
+      subtasks: [],
+      ...g
+    }));
+  }
+
+  if (saved.customTarget && saved.customTarget.date) {
+    state.customTarget = saved.customTarget;
+  }
+
+  if (saved.xp) {
+    for (const domain in DATA) {
+      if (typeof saved.xp[domain] === "number") {
+        state.xp[domain] = saved.xp[domain];
+      }
+    }
+  }
+
+  if (Array.isArray(saved.notes)) {
+    state.notes = saved.notes;
+  }
+
+  if (saved.graphPos && typeof saved.graphPos === "object") {
+    state.graphPos = saved.graphPos;
+  }
+}
+
+async function load() {
+  try {
+    const response = await fetch(FIREBASE_PATH);
+
+    if (!response.ok) {
+      throw new Error(`Firebase HTTP ${response.status}`);
+    }
+
+    const saved = await response.json();
+
+    if (saved) {
+      applySavedState(saved);
+      console.log("✅ Прогресс загружен из Firebase");
+    } else {
+      console.log("☁️ Firebase пуст — начинаем с нуля");
+
+      const local = localStorage.getItem(STORE_KEY);
+
+      if (local) {
+        const localSaved = JSON.parse(local);
+
+        applySavedState(localSaved);
+
+        await save();
+
+        console.log("✅ Старый локальный прогресс перенесён в Firebase");
+      }
+    }
+
+  } catch (e) {
+    console.error("Ошибка загрузки Firebase:", e);
+
+    const local = localStorage.getItem(STORE_KEY);
+
+    if (local) {
+      try {
+        applySavedState(JSON.parse(local));
+        console.log("⚠️ Работаем с локальной копией");
+      } catch (localError) {
+        console.error("Ошибка локального сохранения:", localError);
+      }
+    }
+  }
+
+  document.getElementById("loadstate").textContent =
+    "Прогресс сохраняется в Firebase и доступен с разных устройств.";
+
+  renderCountdown();
+  renderMilestone();
+  renderGoals();
+  renderTabs();
+  renderDomains();
+  renderJournal();
+  updateOverall();
+  renderLevel();
+  setView("graph");
+}
+
+async function save() {
+  const data = JSON.stringify(state);
+
+  // Локальная резервная копия
+  localStorage.setItem(STORE_KEY, data);
+
+  try {
+    const response = await fetch(FIREBASE_PATH, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: data
+    });
+
+    if (!response.ok) {
+      throw new Error(`Firebase HTTP ${response.status}`);
+    }
+
+    console.log("☁️ Прогресс сохранён в Firebase");
+
+  } catch (e) {
+    console.error("❌ Firebase save:", e);
+    console.log("💾 Используется локальная резервная копия");
+  }
+}
 /* ---------- Countdown ---------- */
 function renderCountdown(){
   const now = new Date();
@@ -1342,42 +1428,4 @@ function saveGraphNote(){
 load();
 </script>
 </body>
-  <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js";
-  import {
-    getDatabase,
-    ref,
-    set,
-    get
-  } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-database.js";
-
-  const firebaseConfig = {
-    apiKey: "AIzaSyDps0encjxy3a8DIX-vEXvCvBdNdc_b3OM",
-    authDomain: "development-os-dbdbc.firebaseapp.com",
-    databaseURL: "https://development-os-dbdbc-default-rtdb.europe-west1.firebasedatabase.app",
-    projectId: "development-os-dbdbc",
-    storageBucket: "development-os-dbdbc.firebasestorage.app",
-    messagingSenderId: "119596478971",
-    appId: "1:119596478971:web:05d7a405e5159e45591b5e"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const db = getDatabase(app);
-
-  // ТЕСТОВАЯ ЗАПИСЬ
-  await set(ref(db, "test/progress"), {
-    python: "Junior",
-    ai: "Новичок",
-    marketing: "Новичок"
-  });
-
-  console.log("Firebase работает!");
-
-  // ТЕСТОВОЕ ЧТЕНИЕ
-  const snapshot = await get(ref(db, "test/progress"));
-
-  if (snapshot.exists()) {
-    console.log("Данные:", snapshot.val());
-  }
-</script>
 </html>
