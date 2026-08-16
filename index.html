@@ -269,6 +269,44 @@ function mergeState(saved){
 }
 
 async function loadCloud(){
+  async function loadCloud() {
+  console.log("LOAD CLOUD START");
+
+  const u = auth.currentUser;
+
+  console.log("CURRENT USER:", u);
+
+  if (!u) {
+    console.log("❌ Нет пользователя");
+    return;
+  }
+
+  console.log("UID:", u.uid);
+
+  const path = `users/${u.uid}/progress`;
+
+  console.log("FIREBASE PATH:", path);
+
+  try {
+    const snap = await get(ref(db, path));
+
+    console.log("SNAPSHOT:", snap);
+
+    if (snap.exists()) {
+      console.log("✅ Данные найдены:", snap.val());
+
+      state = blankState();
+      mergeState(snap.val());
+
+    } else {
+      console.log("☁️ Для этого аккаунта данных ещё нет");
+    }
+
+  } catch (error) {
+    console.error("❌ Firebase LOAD ERROR:", error);
+    throw error;
+  }
+}
   const u=auth.currentUser;
   if(!u) return;
   const snap=await get(ref(db,`users/${u.uid}/progress`));
@@ -474,19 +512,43 @@ async function afterLogin(user){
   renderHeader();renderTabs();renderDomains();renderGoals();renderJournal();renderGraph();
   document.getElementById("saveState").textContent="☁️ Прогресс синхронизирован с твоим аккаунтом";
 }
-onAuthStateChanged(auth, async user=>{
-  if(user){await afterLogin(user)}
-  else{
-    document.getElementById("loginOverlay").hidden=false;
-    document.getElementById("app").hidden=true;
+onAuthStateChanged(auth, async (user) => {
+  console.log("AUTH STATE:", user);
+
+  if (user) {
+    console.log("✅ Пользователь вошёл:", user.email);
+    console.log("UID:", user.uid);
+
+    const app = document.getElementById("app");
+    const login = document.getElementById("loginOverlay");
+
+    if (login) login.hidden = true;
+    if (app) app.hidden = false;
+
+    try {
+      console.log("▶ Загружаем данные...");
+      await loadCloud();
+      console.log("✅ loadCloud завершён");
+
+      renderHeader();
+      renderTabs();
+      renderDomains();
+      renderGoals();
+      renderJournal();
+      renderGraph();
+
+      console.log("✅ Интерфейс отрисован");
+    } catch (error) {
+      console.error("❌ Ошибка после входа:", error);
+    }
+
+  } else {
+    console.log("❌ Пользователь не вошёл");
+
+    const login = document.getElementById("loginOverlay");
+    const app = document.getElementById("app");
+
+    if (login) login.hidden = false;
+    if (app) app.hidden = true;
   }
 });
-</script>
-</body>
-</html>
-'''
-
-path = Path("/mnt/data/index.html")
-path.write_text(html, encoding="utf-8")
-print(f"Готово: {path}")
-
