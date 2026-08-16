@@ -1,376 +1,173 @@
-<!DOCTYPE html>
+from pathlib import Path
+
+html = r'''<!DOCTYPE html>
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Карта развития</title>
 <style>
-  :root{
-    --bg: #eeede8;
-    --bg-soft: #ffffff;
-    --card: #ffffff;
-    --line: #dedcd4;
-    --text: #24261f;
-    --text-dim: #8b8f83;
-    --gold: #a97a2e;
-    --sage: #5f7d56;
-    --ember: #b0592a;
-    --idle: #d3d5cb;
-    --idle-line: #c7c9be;
-    --gray: #767b70;
-    --gray-bg: #e7e6e0;
-    --gray-line: #d5d4cc;
-  }
-  *{box-sizing:border-box;}
-  @keyframes fadeUp{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
-  @keyframes popIn{0%{transform:scale(.4);opacity:0;}60%{transform:scale(1.18);}100%{transform:scale(1);opacity:1;}}
-  @keyframes drift{0%,100%{transform:translate(0,0);}50%{transform:translate(14px,-10px);}}
-  @keyframes confetti{
-    0%{transform:translate(0,0) rotate(0deg) scale(1);opacity:1;}
-    100%{transform:translate(var(--dx),var(--dy)) rotate(var(--rot)); opacity:0;}
-  }
-
-  body{
-    margin:0;
-    background:
-      radial-gradient(ellipse at 15% -10%, rgba(95,125,86,0.05), transparent 55%),
-      radial-gradient(ellipse at 95% 105%, rgba(169,122,46,0.05), transparent 55%),
-      var(--bg);
-    color:var(--text);
-    font-family: Georgia, 'Iowan Old Style', serif;
-    padding: 24px 14px 60px;
-    min-height:100vh;
-    position:relative;
-    overflow-x:hidden;
-  }
-  body::before{
-    content:'';
-    position:fixed;top:-20%;left:-10%;width:60vw;height:60vw;
-    background:radial-gradient(circle, rgba(95,125,86,0.04), transparent 70%);
-    animation:drift 18s ease-in-out infinite;
-    pointer-events:none;z-index:0;
-  }
-  .wrap{max-width:860px;margin:0 auto;position:relative;z-index:1;}
-  .wrap.wide{max-width:1180px;}
-  header{margin-bottom:18px;animation:fadeUp .5s ease both;}
-  h1{font-size:24px;font-weight:400;margin:0 0 4px;color:var(--text);}
-  .sub{font-family:-apple-system,'Segoe UI',sans-serif;font-size:12.5px;color:var(--text-dim);}
-
-  .countdown-card{
-    display:flex;align-items:center;gap:18px;
-    background:var(--gray-bg);
-    border:1px solid var(--gray-line);
-    border-radius:6px;
-    padding:16px 18px;
-    margin:18px 0;
-    animation:fadeUp .6s .05s ease both;
-  }
-  .countdown-card .ring-wrap{position:relative;width:74px;height:74px;flex-shrink:0;}
-  .countdown-card svg{transform:rotate(-90deg);}
-  .countdown-card circle.bg{stroke:#d7d6cd;}
-  .countdown-card circle.fg{stroke:var(--gray);stroke-linecap:round;transition:stroke-dashoffset 1.2s cubic-bezier(.22,1,.36,1);}
-  .ring-num{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:-apple-system,'Segoe UI',sans-serif;font-size:15px;font-weight:600;color:var(--gray);}
-  .countdown-text .big{font-family:-apple-system,'Segoe UI',sans-serif;font-size:12px;color:var(--gray);text-transform:uppercase;letter-spacing:.6px;}
-  .countdown-text .days{font-size:22px;color:var(--text);margin-top:2px;}
-  .countdown-text .date{font-family:-apple-system,'Segoe UI',sans-serif;font-size:11px;color:var(--text-dim);margin-top:3px;}
-
-  .countdown-row{display:flex;gap:12px;flex-wrap:wrap;margin:18px 0;}
-  .countdown-row .countdown-card{margin:0;flex:1;min-width:230px;}
-  .countdown-card{position:relative;}
-  .countdown-edit{position:absolute;top:8px;right:10px;font-family:-apple-system,'Segoe UI',sans-serif;font-size:10.5px;color:var(--text-dim);cursor:pointer;background:none;border:none;padding:2px 4px;}
-  .countdown-edit:hover{color:var(--text);}
-
-  .goals-card{background:var(--bg-soft);border:1px solid var(--line);border-radius:6px;padding:16px 18px;margin:0 0 18px;animation:fadeUp .6s .1s ease both;box-shadow:0 1px 3px rgba(0,0,0,.03);}
-  .goals-title{font-size:16px;margin:0 0 10px;display:flex;align-items:center;justify-content:space-between;color:var(--text);}
-  .goals-title .gcnt{font-family:-apple-system,'Segoe UI',sans-serif;font-size:11px;color:var(--text-dim);}
-  .goal-add{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;}
-  .goal-add input[type=text]{flex:1;min-width:140px;background:#fbfbf9;border:1px solid var(--line);border-radius:3px;color:var(--text);padding:7px 9px;font-family:-apple-system,'Segoe UI',sans-serif;font-size:13px;}
-  .goal-add input[type=date]{background:#fbfbf9;border:1px solid var(--line);border-radius:3px;color:var(--text-dim);padding:7px 9px;font-family:-apple-system,'Segoe UI',sans-serif;font-size:12.5px;}
-  .goal-add button{background:var(--gold);color:#fff;border:none;border-radius:3px;padding:7px 14px;font-family:-apple-system,'Segoe UI',sans-serif;font-size:12.5px;font-weight:600;cursor:pointer;transition:transform .15s ease, filter .15s ease;}
-  .goal-add button:hover{transform:translateY(-1px);filter:brightness(1.08);}
-  .goal-item{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #f0efe9;animation:fadeUp .35s ease both;}
-  .goal-item:last-child{border-bottom:none;}
-  .goal-check{width:16px;height:16px;border-radius:50%;border:2px solid var(--idle-line);cursor:pointer;flex-shrink:0;transition:all .2s ease;display:flex;align-items:center;justify-content:center;}
-  .goal-check.done{background:var(--sage);border-color:var(--sage);animation:popIn .3s ease;}
-  .goal-check.done::after{content:'✓';font-size:10px;color:#fff;}
-  .goal-main{flex:1;min-width:0;}
-  .goal-text{font-size:14px;color:var(--text);}
-  .goal-item.done .goal-text{color:var(--text-dim);text-decoration:line-through;}
-  .goal-meta{font-family:-apple-system,'Segoe UI',sans-serif;font-size:10.5px;color:var(--text-dim);margin-top:1px;}
-  .goal-meta.soon{color:var(--ember);}
-  .goal-del{background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:14px;padding:2px 6px;transition:color .15s;}
-  .goal-del:hover{color:var(--ember);}
-  .goals-empty{font-family:-apple-system,'Segoe UI',sans-serif;font-size:12px;color:var(--text-dim);padding:6px 0;}
-
-  .goal-expand{background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:11px;padding:2px 5px;flex-shrink:0;transition:transform .2s ease;}
-  .goal-expand.open{transform:rotate(90deg);}
-  .goal-sub-bar{height:3px;background:var(--idle);border-radius:2px;overflow:hidden;margin-top:5px;width:100%;}
-  .goal-sub-bar-fill{height:100%;background:var(--gold);transition:width .5s ease;}
-  .goal-subwrap{padding:8px 0 4px 26px;display:none;}
-  .goal-subwrap.open{display:block;}
-  .sub-item{display:flex;align-items:center;gap:8px;padding:4px 0;}
-  .sub-check{width:13px;height:13px;border-radius:50%;border:2px solid var(--idle-line);cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
-  .sub-check.done{background:var(--sage);border-color:var(--sage);}
-  .sub-check.done::after{content:'✓';font-size:8px;color:#fff;}
-  .sub-text{font-size:12.5px;font-family:-apple-system,'Segoe UI',sans-serif;color:var(--text);flex:1;}
-  .sub-item.done .sub-text{color:var(--text-dim);text-decoration:line-through;}
-  .sub-del{background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:12px;padding:0 4px;}
-  .sub-del:hover{color:var(--ember);}
-  .sub-add{display:flex;gap:6px;margin-top:4px;}
-  .sub-add input{flex:1;background:#fbfbf9;border:1px solid var(--line);border-radius:3px;padding:5px 8px;font-family:-apple-system,'Segoe UI',sans-serif;font-size:12px;color:var(--text);}
-  .sub-add button{background:var(--sage);color:#fff;border:none;border-radius:3px;padding:5px 10px;font-family:-apple-system,'Segoe UI',sans-serif;font-size:11.5px;cursor:pointer;}
-
-  .viewtabs{display:flex;gap:6px;margin:20px 0 10px;}
-  .vtab{
-    font-family:-apple-system,'Segoe UI',sans-serif;font-size:12.5px;padding:7px 14px;
-    cursor:pointer;color:var(--text-dim);border:1px solid var(--line);border-radius:20px;
-    transition:all .2s ease;background:var(--bg-soft);
-  }
-  .vtab:hover{color:var(--text);}
-  .vtab.active{color:#fff;background:var(--sage);border-color:var(--sage);}
-
-  .tabs{display:flex;gap:6px;margin:8px 0 16px;border-bottom:1px solid var(--line);animation:fadeUp .6s .15s ease both;}
-  .tab{font-family:-apple-system,'Segoe UI',sans-serif;font-size:13px;padding:9px 14px;cursor:pointer;color:var(--text-dim);border-bottom:2px solid transparent;transition:all .2s ease;}
-  .tab:hover{color:var(--text);}
-  .tab.active{color:var(--gold);border-bottom-color:var(--gold);}
-  .tab .cnt{opacity:.7;font-size:11px;margin-left:4px;}
-
-  .overall{display:flex;align-items:center;gap:10px;font-family:-apple-system,'Segoe UI',sans-serif;font-size:12px;color:var(--text-dim);margin-bottom:16px;}
-  .overall .bar{flex:1;height:4px;background:var(--idle);border-radius:2px;overflow:hidden;}
-  .overall .bar-fill{height:100%;background:var(--gold);transition:width .6s cubic-bezier(.22,1,.36,1);}
-  .overall b{color:var(--gold);}
-
-  .domain{display:none;}
-  .domain.active{display:block;}
-
-  .block{background:var(--bg-soft);border:1px solid var(--line);border-radius:4px;margin-bottom:10px;overflow:hidden;animation:fadeUp .4s ease both;box-shadow:0 1px 2px rgba(0,0,0,.02);}
-  .block-head{display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;}
-  .block-head .arrow{font-size:11px;color:var(--text-dim);transition:transform .25s ease;width:10px;}
-  .block.open .block-head .arrow{transform:rotate(90deg);}
-  .block-head .btitle{font-size:15px;flex:1;color:var(--text);}
-  .block-head .bpct{font-family:-apple-system,'Segoe UI',sans-serif;font-size:11px;color:var(--text-dim);}
-  .block-bar{height:2px;background:var(--idle);margin:0 14px;overflow:hidden;}
-  .block-bar-fill{height:100%;background:var(--sage);transition:width .6s cubic-bezier(.22,1,.36,1);}
-  .block-body{max-height:0;overflow:hidden;transition:max-height .35s ease;padding:0 14px 0 34px;}
-  .block.open .block-body{max-height:1200px;padding:4px 14px 12px 34px;}
-
-  .micro{display:flex;align-items:flex-start;gap:9px;padding:6px 0;border-bottom:1px solid #f2f1eb;position:relative;}
-  .micro:last-child{border-bottom:none;}
-  .dot{margin-top:3px;width:11px;height:11px;min-width:11px;border-radius:50%;background:var(--idle);border:2px solid var(--bg-soft);cursor:pointer;transition:transform .2s cubic-bezier(.34,1.56,.64,1), background .25s ease;}
-  .dot:hover{transform:scale(1.25);}
-  .dot.progress{background:var(--ember);}
-  .dot.done{background:var(--sage);animation:popIn .35s cubic-bezier(.34,1.56,.64,1);}
-  .micro-label{font-size:13.5px;cursor:pointer;user-select:none;line-height:1.4;transition:color .25s ease;color:var(--text);}
-  .micro.state-idle .micro-label{color:var(--text-dim);}
-  .micro.state-done .micro-label{color:var(--sage);text-decoration:line-through;text-decoration-color:rgba(95,125,86,.4);}
-  .micro.state-progress .micro-label{color:var(--text);}
-
-  .confetti-piece{position:absolute;top:4px;left:5px;width:5px;height:5px;border-radius:1px;pointer-events:none;animation:confetti .7s ease-out forwards;}
-
-  .legend{display:flex;gap:16px;font-family:-apple-system,'Segoe UI',sans-serif;font-size:11px;color:var(--text-dim);margin-bottom:10px;flex-wrap:wrap;}
-  .legend span{display:flex;align-items:center;gap:5px;}
-  .legend i{width:9px;height:9px;border-radius:50%;display:inline-block;}
-
-  .toolbar{display:flex;gap:10px;margin:10px 0 4px;font-family:-apple-system,'Segoe UI',sans-serif;font-size:11.5px;}
-  .toolbar button{background:var(--bg-soft);border:1px solid var(--line);color:var(--text-dim);padding:4px 9px;border-radius:3px;cursor:pointer;transition:all .15s ease;}
-  .toolbar button:hover{color:var(--text);border-color:var(--sage);}
-
-  .footer-note{margin-top:26px;font-family:-apple-system,'Segoe UI',sans-serif;font-size:11px;color:var(--text-dim);text-align:center;}
-
-  .graph-wrap{background:var(--bg-soft);border:1px solid var(--line);border-radius:6px;padding:8px;overflow:auto;animation:fadeUp .4s ease both;min-height:520px;}
-  .graph-wrap svg{display:block;margin:0 auto;}
-  .gnode-label{font-family:-apple-system,'Segoe UI',sans-serif;pointer-events:none;}
-  .gline{stroke:var(--idle-line);stroke-width:1;}
-  .gnode{cursor:pointer;transition:r .15s ease;}
-  .gnode:hover{filter:brightness(0.9);}
-  .gnode.locked{cursor:not-allowed;}
-  .gnode.locked:hover{filter:none;}
-
-  @keyframes graphDrift{0%,100%{transform:translate(0,0);}25%{transform:translate(2.5px,-2px);}50%{transform:translate(-2px,2.5px);}75%{transform:translate(2px,1.5px);}}
-  @keyframes nodePulse{0%,100%{opacity:1;r:4.4;}50%{opacity:.55;r:6.2;}}
-  @keyframes nodeGlow{0%,100%{opacity:1;}50%{opacity:.65;}}
-  .gnode-g{transform-box:fill-box;transform-origin:center;animation:graphDrift 7s ease-in-out infinite;}
-  .gnode.pulse-progress{animation:nodePulse 1.5s ease-in-out infinite;}
-  .gnode.pulse-next{animation:nodeGlow 2.2s ease-in-out infinite;}
-
-  .micro.state-locked{opacity:.4;}
-  .micro.state-locked .dot{background:var(--gray-bg)!important;border-color:var(--gray-line);cursor:not-allowed;}
-  .micro.state-locked .micro-label{cursor:not-allowed;}
-  .micro.state-locked .micro-label::before{content:'🔒 ';font-size:10px;}
-
-  .active-card{background:var(--bg-soft);border:1px solid var(--line);border-radius:6px;padding:16px 18px;margin:0 0 14px;box-shadow:0 1px 3px rgba(0,0,0,.03);}
-  .active-empty{font-family:-apple-system,'Segoe UI',sans-serif;font-size:12.5px;color:var(--text-dim);}
-
-  /* ---------- Level bar ---------- */
-  .level-card{display:flex;align-items:center;gap:14px;background:var(--bg-soft);border:1px solid var(--line);border-radius:6px;padding:10px 16px;margin:14px 0;animation:fadeUp .6s .02s ease both;box-shadow:0 1px 3px rgba(0,0,0,.03);}
-  .level-badge{font-family:-apple-system,'Segoe UI',sans-serif;font-weight:700;font-size:13px;color:#fff;background:var(--gold);border-radius:20px;padding:5px 12px;white-space:nowrap;flex-shrink:0;}
-  .level-main{flex:1;min-width:0;}
-  .level-row{display:flex;justify-content:space-between;font-family:-apple-system,'Segoe UI',sans-serif;font-size:11px;color:var(--text-dim);margin-bottom:4px;}
-  .level-bar{height:5px;background:var(--idle);border-radius:3px;overflow:hidden;}
-  .level-bar-fill{height:100%;background:linear-gradient(90deg,var(--gold),var(--ember));transition:width .5s cubic-bezier(.22,1,.36,1);}
-  .rank-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:7px;}
-  .rank-chip{font-family:-apple-system,'Segoe UI',sans-serif;font-size:10.5px;color:var(--text-dim);background:var(--gray-bg);border:1px solid var(--gray-line);border-radius:12px;padding:3px 9px;}
-  .rank-chip b{color:var(--gold);font-weight:600;}
-
-  /* ---------- Toasts ---------- */
-  .toast-wrap{position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:9999;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none;}
-  .toast{font-family:-apple-system,'Segoe UI',sans-serif;background:var(--text);color:#fff;border-radius:8px;padding:10px 16px;font-size:12.5px;box-shadow:0 6px 20px rgba(0,0,0,.18);animation:toastIn .35s cubic-bezier(.22,1,.36,1) both, toastOut .4s ease .35s forwards;pointer-events:none;max-width:320px;text-align:center;line-height:1.5;}
-  .toast b{color:#ffd28a;}
-  .toast .toast-sub{opacity:.75;font-size:11px;margin-top:2px;}
-  @keyframes toastIn{from{opacity:0;transform:translateY(-14px) scale(.92);}to{opacity:1;transform:translateY(0) scale(1);}}
-  @keyframes toastOut{0%,85%{opacity:1;}100%{opacity:0;transform:translateY(-6px);}}
-  .toast.stay{animation:toastIn .35s cubic-bezier(.22,1,.36,1) both;}
-
-  /* ---------- Notes ---------- */
-  .note-btn{background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:11px;padding:2px 4px;flex-shrink:0;opacity:.6;transition:opacity .15s;}
-  .note-btn:hover{opacity:1;}
-  .note-btn.has-notes{color:var(--gold);opacity:1;}
-  .note-panel{padding:8px 0 8px 20px;display:none;}
-  .note-panel.open{display:block;}
-  .note-entry{background:#fbfbf9;border:1px solid var(--line);border-radius:4px;padding:7px 9px;margin-bottom:6px;font-size:12.5px;color:var(--text);line-height:1.5;white-space:pre-wrap;position:relative;}
-  .note-entry .note-date{font-family:-apple-system,'Segoe UI',sans-serif;font-size:10px;color:var(--text-dim);margin-top:4px;}
-  .note-entry .note-del{position:absolute;top:4px;right:6px;background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:11px;}
-  .note-entry .note-del:hover{color:var(--ember);}
-  .note-add{display:flex;flex-direction:column;gap:6px;}
-  .note-add textarea{width:100%;min-height:52px;resize:vertical;background:#fbfbf9;border:1px solid var(--line);border-radius:3px;padding:7px 9px;font-family:-apple-system,'Segoe UI',sans-serif;font-size:12.5px;color:var(--text);}
-  .note-add button{align-self:flex-end;background:var(--gold);color:#fff;border:none;border-radius:3px;padding:5px 12px;font-family:-apple-system,'Segoe UI',sans-serif;font-size:11.5px;font-weight:600;cursor:pointer;}
-  .journal-card{background:var(--bg-soft);border:1px solid var(--line);border-radius:6px;padding:16px 18px;margin:0 0 14px;box-shadow:0 1px 3px rgba(0,0,0,.03);}
-  .journal-entry{display:flex;gap:10px;padding:10px 0;border-bottom:1px solid #f0efe9;animation:fadeUp .35s ease both;}
-  .journal-entry:last-child{border-bottom:none;}
-  .journal-dot{width:8px;height:8px;border-radius:50%;background:var(--sage);margin-top:5px;flex-shrink:0;}
-  .journal-body{flex:1;min-width:0;}
-  .journal-path{font-family:-apple-system,'Segoe UI',sans-serif;font-size:10.5px;color:var(--text-dim);margin-bottom:2px;}
-  .journal-text{font-size:13.5px;color:var(--text);line-height:1.5;white-space:pre-wrap;}
-  .journal-date{font-family:-apple-system,'Segoe UI',sans-serif;font-size:10px;color:var(--text-dim);margin-top:3px;}
-  .journal-del{background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:13px;padding:2px 6px;flex-shrink:0;align-self:flex-start;}
-  .journal-del:hover{color:var(--ember);}
-  .journal-empty{font-family:-apple-system,'Segoe UI',sans-serif;font-size:12.5px;color:var(--text-dim);}
-
-  /* ---------- Fullscreen graph ---------- */
-  .graph-controls{display:flex;gap:6px;margin-left:auto;}
-  .legend-row{display:flex;align-items:center;}
-  .graph-controls button{font-family:-apple-system,'Segoe UI',sans-serif;background:var(--bg-soft);border:1px solid var(--line);color:var(--text-dim);padding:4px 10px;border-radius:3px;cursor:pointer;font-size:12px;transition:all .15s ease;}
-  .graph-controls button:hover{color:var(--text);border-color:var(--sage);}
-  .fs-overlay{display:none;position:fixed;inset:0;background:var(--bg);z-index:9998;flex-direction:column;}
-  .fs-overlay.open{display:flex;}
-  .fs-topbar{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--line);font-family:-apple-system,'Segoe UI',sans-serif;}
-  .fs-topbar .fs-title{font-size:13px;color:var(--text-dim);flex:1;}
-  .fs-topbar button{background:var(--bg-soft);border:1px solid var(--line);color:var(--text);padding:6px 12px;border-radius:3px;cursor:pointer;font-size:13px;}
-  .fs-topbar button:hover{border-color:var(--sage);}
-  .fs-topbar .fs-close{background:var(--ember);color:#fff;border-color:var(--ember);}
-  .fs-canvas{flex:1;overflow:hidden;position:relative;cursor:grab;touch-action:none;}
-  .fs-canvas.dragging{cursor:grabbing;}
-  #fsZoomLayer{width:100%;height:100%;display:flex;align-items:center;justify-content:center;transform-origin:0 0;}
-  .fs-canvas .graph-wrap{border:none;min-height:0;overflow:visible;display:flex;align-items:center;justify-content:center;padding:0;background:transparent;animation:none;}
-
-  .gn-modal-backdrop{display:none;position:fixed;inset:0;background:rgba(36,38,31,.45);z-index:10001;align-items:center;justify-content:center;padding:16px;}
-  .gn-modal-backdrop.open{display:flex;}
-  .gn-modal{background:var(--bg-soft);border-radius:8px;padding:18px 20px;max-width:420px;width:100%;max-height:80vh;overflow:auto;box-shadow:0 10px 40px rgba(0,0,0,.25);}
-  .gn-modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:10px;}
-  .gn-modal-title{font-size:15px;color:var(--text);}
-  .gn-modal-close{background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:15px;}
-  .gn-modal-close:hover{color:var(--ember);}
+:root{
+  --bg:#eeede8;--card:#fff;--line:#dedcd4;--text:#24261f;--dim:#8b8f83;
+  --gold:#a97a2e;--sage:#5f7d56;--ember:#b0592a;--idle:#d3d5cb;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Georgia,serif;padding:24px 14px 60px}
+.wrap{max-width:1180px;margin:auto}
+header{margin-bottom:18px}
+h1{font-size:24px;font-weight:400;margin:0 0 4px}
+.sub,.small{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--dim);font-size:12px}
+.topbar{display:flex;gap:8px;align-items:center;justify-content:flex-end;margin-bottom:10px}
+.btn{border:1px solid var(--line);background:#fff;border-radius:5px;padding:7px 11px;cursor:pointer}
+.btn.green{background:var(--sage);color:#fff;border-color:var(--sage)}
+.card{background:#fff;border:1px solid var(--line);border-radius:7px;padding:14px 16px;margin-bottom:14px}
+.level{display:flex;gap:14px;align-items:center}
+.badge{background:var(--gold);color:#fff;border-radius:18px;padding:6px 12px;font:700 13px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.bar{height:5px;background:#d3d5cb;border-radius:3px;overflow:hidden}
+.fill{height:100%;background:var(--gold);transition:.3s}
+.tabs,.viewtabs{display:flex;gap:7px;flex-wrap:wrap;margin:14px 0}
+.tab,.vtab{padding:7px 12px;border:1px solid var(--line);border-radius:20px;background:#fff;color:var(--dim);cursor:pointer;font:12px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.tab.active,.vtab.active{background:var(--sage);border-color:var(--sage);color:#fff}
+.overall{display:flex;align-items:center;gap:10px;font:12px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--dim);margin-bottom:12px}
+.overall .bar{flex:1}
+.block{background:#fff;border:1px solid var(--line);border-radius:6px;margin-bottom:9px;overflow:hidden}
+.block-head{padding:11px 13px;display:flex;gap:8px;align-items:center;cursor:pointer}
+.arrow{width:10px;color:var(--dim)}
+.block-body{display:none;padding:3px 14px 12px 30px}
+.block.open .block-body{display:block}
+.micro{display:flex;align-items:center;gap:9px;padding:7px 0;border-bottom:1px solid #f0efe9}
+.dot{width:11px;height:11px;border-radius:50%;background:var(--idle);cursor:pointer;flex:0 0 11px}
+.dot.progress{background:var(--ember)}.dot.done{background:var(--sage)}
+.micro-label{flex:1;font-size:13px;cursor:pointer}
+.micro.done .micro-label{text-decoration:line-through;color:var(--sage)}
+.note{border:0;background:none;cursor:pointer;color:var(--dim)}
+.goal-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+input,textarea{border:1px solid var(--line);border-radius:5px;padding:8px;background:#fbfbf9}
+input[type=text]{flex:1;min-width:180px}
+.goal{display:flex;gap:9px;align-items:center;padding:8px 0;border-bottom:1px solid #f0efe9}
+.goal.done{text-decoration:line-through;color:var(--dim)}
+.goal-main{flex:1}
+.goal-del{border:0;background:none;color:var(--dim);cursor:pointer}
+#graph{background:#fff;border:1px solid var(--line);border-radius:7px;min-height:600px;overflow:auto;padding:6px}
+.journal-item{padding:9px 0;border-bottom:1px solid #f0efe9}
+.journal-path{font:10px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--dim)}
+.journal-text{font-size:13px;margin-top:2px;white-space:pre-wrap}
+#loginOverlay{position:fixed;inset:0;z-index:99999;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px}
+.login-card{width:340px;max-width:100%;background:#fff;border:1px solid var(--line);border-radius:10px;padding:28px;box-shadow:0 12px 45px rgba(0,0,0,.12)}
+.login-card h2{font-weight:400;margin:0 0 6px}.login-card input{width:100%;margin:6px 0}
+.error{min-height:18px;color:var(--ember);font:11px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+#toastWrap{position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:100000}
+.toast{background:#24261f;color:#fff;padding:10px 14px;border-radius:7px;margin-bottom:7px;font:12px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+@media(max-width:700px){body{padding:14px 10px 40px}.level{align-items:flex-start}.topbar{justify-content:space-between}.card{padding:12px}}
 </style>
 </head>
 <body>
-<div class="toast-wrap" id="toastWrap"></div>
-<div class="wrap" id="wrapEl">
+
+<div id="loginOverlay">
+  <div class="login-card">
+    <h2>Карта развития</h2>
+    <div class="small">Войди, чтобы открыть свой приватный прогресс.</div>
+    <input id="loginEmail" type="email" placeholder="Email" autocomplete="username">
+    <input id="loginPassword" type="password" placeholder="Пароль" autocomplete="current-password">
+    <button class="btn green" style="width:100%;margin-top:6px" id="loginBtn">Войти</button>
+    <div class="error" id="loginError"></div>
+  </div>
+</div>
+
+<div id="toastWrap"></div>
+
+<div class="wrap" id="app" hidden>
+  <div class="topbar">
+    <div class="small" id="userLabel"></div>
+    <button class="btn" id="logoutBtn">Выйти</button>
+  </div>
+
   <header>
     <h1>Карта развития</h1>
     <div class="sub">Технологии · Люди · Бизнес · Цели на будущее</div>
   </header>
 
-  <div class="level-card" id="levelCard"></div>
+  <div class="card level">
+    <div class="badge" id="levelBadge">Уровень 0</div>
+    <div style="flex:1">
+      <div class="small" id="xpText">0/100 XP</div>
+      <div class="bar"><div class="fill" id="xpBar" style="width:0%"></div></div>
+      <div class="small" id="rankText" style="margin-top:6px"></div>
+    </div>
+  </div>
 
-  <div class="countdown-row">
-    <div class="countdown-card" id="countdownCard"></div>
-    <div class="countdown-card" id="milestoneCard"></div>
+  <div class="card">
+    <div style="font-size:16px;margin-bottom:8px">Цели</div>
+    <div class="goal-row">
+      <input id="goalInput" type="text" placeholder="Например: выучить английский">
+      <input id="goalDate" type="date">
+      <button class="btn green" id="addGoalBtn">Добавить</button>
+    </div>
+    <div id="goalsList"></div>
   </div>
 
   <div class="viewtabs">
-    <div class="vtab" id="vtabGraph" onclick="setView('graph')">Дерево</div>
-    <div class="vtab" id="vtabList" onclick="setView('list')">Список</div>
-    <div class="vtab" id="vtabActive" onclick="setView('active')">Активное развитие</div>
-    <div class="vtab" id="vtabJournal" onclick="setView('journal')">Журнал</div>
+    <button class="vtab active" data-view="list">Список</button>
+    <button class="vtab" data-view="graph">Дерево</button>
+    <button class="vtab" data-view="journal">Журнал</button>
   </div>
 
   <div class="overall">
     <span>Всего: <b id="overallPct">0%</b></span>
-    <div class="bar"><div class="bar-fill" id="overallBar" style="width:0%"></div></div>
+    <div class="bar"><div class="fill" id="overallBar" style="width:0%"></div></div>
     <span id="overallCount">0/0</span>
   </div>
 
-  <div id="graphView" style="display:none;">
-    <div class="legend legend-row">
-      <span><i style="background:var(--idle)"></i> не начато</span>
-      <span><i style="background:var(--ember)"></i> в процессе</span>
-      <span><i style="background:var(--sage)"></i> выучено</span>
-      <span style="opacity:.8">· перетащи точку, ПКМ/долгое нажатие — заметка</span>
-      <div class="graph-controls">
-        <button onclick="resetGraphLayout()">сбросить расположение</button>
-        <button onclick="openFullscreenGraph()">⛶ Развернуть</button>
-      </div>
-    </div>
-    <div class="graph-wrap" id="graphWrap"></div>
+  <div id="listView">
+    <div class="tabs" id="domainTabs"></div>
+    <div id="domains"></div>
   </div>
 
-  <div id="journalView" style="display:none;">
-    <div class="journal-card">
-      <div class="goals-title">Журнал заметок</div>
-      <div style="font-family:-apple-system,'Segoe UI',sans-serif;font-size:11.5px;color:var(--text-dim);margin-bottom:6px;">Всё, что ты записал по темам — в хронологическом порядке.</div>
+  <div id="graphView" hidden>
+    <div id="graph"></div>
+  </div>
+
+  <div id="journalView" hidden>
+    <div class="card">
+      <div style="font-size:16px;margin-bottom:8px">Журнал заметок</div>
       <div id="journalList"></div>
     </div>
   </div>
 
-  <div id="tabs" class="tabs" style="display:none;"></div>
-  <div class="toolbar" id="toolbarList" style="display:none;">
-    <button onclick="expandAll()">развернуть всё</button>
-    <button onclick="collapseAll()">свернуть всё</button>
-  </div>
-  <div id="listView" style="display:none;"><div id="domains"></div></div>
-
-  <div id="activeView" style="display:none;">
-    <div class="active-card">
-      <div class="goals-title">Активное развитие <span class="gcnt" id="goalsCnt"></span></div>
-      <div style="font-family:-apple-system,'Segoe UI',sans-serif;font-size:11.5px;color:var(--text-dim);margin-bottom:10px;">Навык, который качаешь сейчас — например «Английский». Распиши базу (что и как учить) пунктами, отмечай выполненное. Когда все пункты закрыты — цель считается достигнутой.</div>
-      <div class="goal-add">
-        <input type="text" id="goalInput" placeholder="Например: выучить английский" />
-        <input type="date" id="goalDate" />
-        <button onclick="addGoal()">Добавить</button>
-      </div>
-      <div id="goalsList"></div>
-    </div>
-  </div>
-
-  <div class="footer-note" id="loadstate">Загрузка…</div>
-</div>
-
-<div class="fs-overlay" id="fsOverlay">
-  <div class="fs-topbar">
-    <span class="fs-title">Колесо — зум, перетаскивание — панорама</span>
-    <button onclick="fsZoom(1.25)">+</button>
-    <button onclick="fsZoom(0.8)">−</button>
-    <button onclick="fsReset()">сбросить вид</button>
-    <button onclick="resetGraphLayout()">сбросить расположение</button>
-    <button class="fs-close" onclick="closeFullscreenGraph()">✕ Закрыть</button>
-  </div>
-  <div class="fs-canvas" id="fsCanvas"><div id="fsZoomLayer"></div></div>
-</div>
-
-<div class="gn-modal-backdrop" id="gnModalBackdrop" onclick="if(event.target===this)closeGraphNoteModal()">
-  <div class="gn-modal">
-    <div class="gn-modal-head">
-      <div class="gn-modal-title" id="gnModalTitle"></div>
-      <button class="gn-modal-close" onclick="closeGraphNoteModal()">✕</button>
-    </div>
-    <div id="gnModalNotes"></div>
-    <div class="note-add">
-      <textarea id="gnModalInput" placeholder="Что узнал(а) по этой теме?"></textarea>
-      <button onclick="saveGraphNote()">Сохранить заметку</button>
-    </div>
+  <div class="small" id="saveState" style="text-align:center;margin-top:18px">
+    Подключение...
   </div>
 </div>
 
-<script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js";
+import {
+  getAuth,
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  signOut
+} from "https://www.gstatic.com/firebasejs/12.16.0/firebase-auth.js";
+import {
+  getDatabase,
+  ref,
+  get,
+  set
+} from "https://www.gstatic.com/firebasejs/12.16.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDps0encjxy3a8DIX-vEXvCvBdNdc_b3OM",
+  authDomain: "development-os-dbdbc.firebaseapp.com",
+  databaseURL: "https://development-os-dbdbc-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "development-os-dbdbc",
+  storageBucket: "development-os-dbdbc.firebasestorage.app",
+  messagingSenderId: "119596478971",
+  appId: "1:119596478971:web:05d7a405e5159e45591b5e"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getDatabase(app);
+
 const DATA = {
   "Технологии": {
     "Основы программирования": ["Синтаксис и типы данных","Переменные и операторы","Условия и циклы","Функции","ООП: классы и объекты","Структуры данных","Алгоритмы и сложность (Big O)","Git и контроль версий"],
@@ -405,1027 +202,291 @@ const DATA = {
   }
 };
 
-const STATES = ["idle","progress","done"];
-const STATUS_COLOR = {idle:'#d3d5cb', progress:'#b0592a', done:'#5f7d56'};
 const RANKS = {
-  "Технологии": ["Новичок","Junior","Middle","Senior","Lead"],
-  "Люди": ["Новичок","Продвинутый новичок","Компетентный","Профессионал","Эксперт"],
-  "Бизнес": ["Идея / Pre-seed","MVP / Validation","Traction","Growth","Scale"]
+  "Технологии":["Новичок","Junior","Middle","Senior","Lead"],
+  "Люди":["Новичок","Продвинутый новичок","Компетентный","Профессионал","Эксперт"],
+  "Бизнес":["Идея / Pre-seed","MVP / Validation","Traction","Growth","Scale"]
 };
-const RANK_DEFAULT = ["Новичок","Начинающий","Средний уровень","Продвинутый","Эксперт"];
-function rankForDomain(domain){
-  const {done, total} = domainStats(domain);
-  const pct = total ? done/total*100 : 0;
-  const tiers = RANKS[domain] || RANK_DEFAULT;
-  let idx = 0;
-  if (pct >= 95) idx = 4;
-  else if (pct >= 70) idx = 3;
-  else if (pct >= 40) idx = 2;
-  else if (pct >= 15) idx = 1;
-  else idx = 0;
-  return tiers[idx];
-}
-function isUnlocked(domain, block, idx){
-  if (idx <= 0) return true;
-  const prevTopic = DATA[domain][block][idx-1];
-  return state.topics[domain][block][prevTopic] === 'done';
-}
-const STORE_KEY = "razvitie-full-state-v4";
-let state = { topics:{}, goals:[], customTarget: { label: "До 2027", date: "2027-01-01" }, xp:{}, notes:[], graphPos:{} };
-let currentDomain = Object.keys(DATA)[0];
-let blockOpenState = {};
-let goalOpenState = {};
-let currentView = 'graph';
-const XP_PER_LEVEL = 100;
-const XP_START = 5;
-const XP_DONE = 15;
 
-for (const domain in DATA) state.xp[domain] = 0;
+const COLORS = {idle:"#d3d5cb",progress:"#b0592a",done:"#5f7d56"};
+const XP_START = 5, XP_DONE = 15, XP_PER_LEVEL = 100;
+const STATE_KEY = "development-os-local-backup-v1";
 
-for (const domain in DATA) {
-  state.topics[domain] = {};
-  for (const block in DATA[domain]) {
-    state.topics[domain][block] = {};
-    DATA[domain][block].forEach(topic => state.topics[domain][block][topic] = "idle");
-    blockOpenState[domain + "::" + block] = false;
-  }
-}
-
-
-function setView(v){
-  currentView = v;
-  document.getElementById('vtabList').classList.toggle('active', v==='list');
-  document.getElementById('vtabGraph').classList.toggle('active', v==='graph');
-  document.getElementById('vtabActive').classList.toggle('active', v==='active');
-  document.getElementById('vtabJournal').classList.toggle('active', v==='journal');
-  document.getElementById('tabs').style.display = v==='list' ? 'flex' : 'none';
-  document.getElementById('toolbarList').style.display = v==='list' ? 'flex' : 'none';
-  document.getElementById('listView').style.display = v==='list' ? 'block' : 'none';
-  document.getElementById('graphView').style.display = v==='graph' ? 'block' : 'none';
-  document.getElementById('activeView').style.display = v==='active' ? 'block' : 'none';
-  document.getElementById('journalView').style.display = v==='journal' ? 'block' : 'none';
-  document.getElementById('wrapEl').classList.toggle('wide', v==='graph');
-  if (v==='graph') renderGraph();
-  if (v==='journal') renderJournal();
-}
-const FIREBASE_URL =
-  "https://development-os-dbdbc-default-rtdb.europe-west1.firebasedatabase.app";
-
-const FIREBASE_PATH = `${FIREBASE_URL}/development-os.json`;
-
-function applySavedState(saved) {
-  if (!saved) return;
-
-  if (saved.topics) {
-    for (const domain in DATA) {
-      for (const block in DATA[domain]) {
-        DATA[domain][block].forEach(topic => {
-          if (
-            saved.topics[domain] &&
-            saved.topics[domain][block] &&
-            saved.topics[domain][block][topic]
-          ) {
-            state.topics[domain][block][topic] =
-              saved.topics[domain][block][topic];
-          }
-        });
-      }
+function blankState(){
+  const s = {topics:{},goals:[],xp:{},notes:[],graphPos:{}};
+  for(const d in DATA){
+    s.xp[d]=0;s.topics[d]={};
+    for(const b in DATA[d]){
+      s.topics[d][b]={};
+      for(const t of DATA[d][b]) s.topics[d][b][t]="idle";
     }
   }
+  return s;
+}
+let state = blankState();
+let currentDomain = "Технологии";
+let currentView = "list";
+let blockOpen = {};
 
-  if (Array.isArray(saved.goals)) {
-    state.goals = saved.goals.map(g => ({
-      subtasks: [],
-      ...g
-    }));
+function rankForDomain(d){
+  let done=0,total=0;
+  for(const b in DATA[d]) for(const t of DATA[d][b]){
+    total++; if(state.topics[d][b][t]==="done") done++;
   }
-
-  if (saved.customTarget && saved.customTarget.date) {
-    state.customTarget = saved.customTarget;
+  const p=total?done/total*100:0, r=RANKS[d];
+  return r[p>=95?4:p>=70?3:p>=40?2:p>=15?1:0];
+}
+function totalStats(){
+  let done=0,total=0;
+  for(const d in DATA) for(const b in DATA[d]) for(const t of DATA[d][b]){
+    total++; if(state.topics[d][b][t]==="done") done++;
   }
+  return {done,total};
+}
+function blockStats(d,b){
+  let done=0; for(const t of DATA[d][b]) if(state.topics[d][b][t]==="done") done++;
+  return {done,total:DATA[d][b].length};
+}
+function unlocked(d,b,i){
+  if(i===0) return true;
+  const prev=DATA[d][b][i-1];
+  return state.topics[d][b][prev]==="done";
+}
+function localSave(){ localStorage.setItem(STATE_KEY,JSON.stringify(state)); }
 
-  if (saved.xp) {
-    for (const domain in DATA) {
-      if (typeof saved.xp[domain] === "number") {
-        state.xp[domain] = saved.xp[domain];
-      }
+function mergeState(saved){
+  if(!saved) return;
+  if(saved.topics){
+    for(const d in DATA) for(const b in DATA[d]) for(const t of DATA[d][b]){
+      const v=saved.topics?.[d]?.[b]?.[t];
+      if(v) state.topics[d][b][t]=v;
     }
   }
+  if(Array.isArray(saved.goals)) state.goals=saved.goals;
+  if(saved.xp) for(const d in DATA) if(typeof saved.xp[d]==="number") state.xp[d]=saved.xp[d];
+  if(Array.isArray(saved.notes)) state.notes=saved.notes;
+  if(saved.graphPos) state.graphPos=saved.graphPos;
+}
 
-  if (Array.isArray(saved.notes)) {
-    state.notes = saved.notes;
-  }
-
-  if (saved.graphPos && typeof saved.graphPos === "object") {
-    state.graphPos = saved.graphPos;
+async function loadCloud(){
+  const u=auth.currentUser;
+  if(!u) return;
+  const snap=await get(ref(db,`users/${u.uid}/progress`));
+  if(snap.exists()){
+    state=blankState(); mergeState(snap.val());
+  }else{
+    const old=localStorage.getItem(STATE_KEY);
+    if(old){
+      try{
+        state=blankState(); mergeState(JSON.parse(old));
+        await saveCloud();
+      }catch{}
+    }
   }
 }
 
-async function load() {
-  try {
-    const response = await fetch(FIREBASE_PATH);
-
-    if (!response.ok) {
-      throw new Error(`Firebase HTTP ${response.status}`);
-    }
-
-    const saved = await response.json();
-
-    if (saved) {
-      applySavedState(saved);
-      console.log("✅ Прогресс загружен из Firebase");
-    } else {
-      console.log("☁️ Firebase пуст — начинаем с нуля");
-
-      const local = localStorage.getItem(STORE_KEY);
-
-      if (local) {
-        const localSaved = JSON.parse(local);
-
-        applySavedState(localSaved);
-
-        await save();
-
-        console.log("✅ Старый локальный прогресс перенесён в Firebase");
-      }
-    }
-
-  } catch (e) {
-    console.error("Ошибка загрузки Firebase:", e);
-
-    const local = localStorage.getItem(STORE_KEY);
-
-    if (local) {
-      try {
-        applySavedState(JSON.parse(local));
-        console.log("⚠️ Работаем с локальной копией");
-      } catch (localError) {
-        console.error("Ошибка локального сохранения:", localError);
-      }
-    }
+let saveTimer=null;
+async function saveCloud(){
+  const u=auth.currentUser;
+  localSave();
+  if(!u) return;
+  try{
+    await set(ref(db,`users/${u.uid}/progress`),state);
+    document.getElementById("saveState").textContent="☁️ Сохранено и синхронизировано";
+  }catch(e){
+    console.error(e);
+    document.getElementById("saveState").textContent="⚠️ Ошибка облачного сохранения";
   }
-
-  document.getElementById("loadstate").textContent =
-    "Прогресс сохраняется в Firebase и доступен с разных устройств.";
-
-  renderCountdown();
-  renderMilestone();
-  renderGoals();
-  renderTabs();
-  renderDomains();
-  renderJournal();
-  updateOverall();
-  renderLevel();
-  setView("graph");
+}
+function save(){
+  localSave();
+  clearTimeout(saveTimer);
+  saveTimer=setTimeout(()=>saveCloud(),150);
 }
 
-async function save() {
-  const data = JSON.stringify(state);
+function toast(text){
+  const t=document.createElement("div");t.className="toast";t.textContent=text;
+  document.getElementById("toastWrap").appendChild(t);
+  setTimeout(()=>t.remove(),2600);
+}
 
-  // Локальная резервная копия
-  localStorage.setItem(STORE_KEY, data);
+function renderHeader(){
+  const xp=Object.values(state.xp).reduce((a,b)=>a+b,0);
+  const level=Math.floor(xp/XP_PER_LEVEL), into=xp%XP_PER_LEVEL;
+  document.getElementById("levelBadge").textContent=`Уровень ${level}`;
+  document.getElementById("xpText").textContent=`${into}/${XP_PER_LEVEL} XP`;
+  document.getElementById("xpBar").style.width=`${into}%`;
+  document.getElementById("rankText").textContent=
+    Object.keys(DATA).map(d=>`${d}: ${rankForDomain(d)}`).join(" · ");
+  const {done,total}=totalStats(), p=total?Math.round(done/total*100):0;
+  document.getElementById("overallPct").textContent=p+"%";
+  document.getElementById("overallBar").style.width=p+"%";
+  document.getElementById("overallCount").textContent=`${done}/${total}`;
+}
 
-  try {
-    const response = await fetch(FIREBASE_PATH, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: data
+function renderTabs(){
+  const el=document.getElementById("domainTabs");el.innerHTML="";
+  for(const d in DATA){
+    const s=blockStats(d,Object.keys(DATA[d])[0]);
+    let done=0,total=0;
+    for(const b in DATA[d]){const x=blockStats(d,b);done+=x.done;total+=x.total;}
+    const b=document.createElement("button");b.className="tab"+(d===currentDomain?" active":"");
+    b.textContent=`${d} · ${done}/${total}`;
+    b.onclick=()=>{currentDomain=d;renderTabs();renderDomains()};
+    el.appendChild(b);
+  }
+}
+
+function renderDomains(){
+  const el=document.getElementById("domains");el.innerHTML="";
+  for(const b in DATA[currentDomain]){
+    const st=blockStats(currentDomain,b), key=currentDomain+"::"+b;
+    const box=document.createElement("div");box.className="block"+(blockOpen[key]?" open":"");
+    const head=document.createElement("div");head.className="block-head";
+    head.innerHTML=`<span class="arrow">${blockOpen[key]?"▼":"▶"}</span><span style="flex:1">${b}</span><span class="small">${st.done}/${st.total}</span>`;
+    head.onclick=()=>{blockOpen[key]=!blockOpen[key];renderDomains()};
+    box.appendChild(head);
+    const body=document.createElement("div");body.className="block-body";
+    DATA[currentDomain][b].forEach((t,i)=>{
+      const s=state.topics[currentDomain][b][t], can=unlocked(currentDomain,b,i);
+      const row=document.createElement("div");row.className="micro"+(s==="done"?" done":"");
+      const dot=document.createElement("div");dot.className="dot "+(can?s:"");
+      if(can) dot.onclick=()=>cycle(currentDomain,b,t,i);
+      const label=document.createElement("div");label.className="micro-label";label.textContent=can?t:"🔒 "+t;
+      if(can) label.onclick=()=>cycle(currentDomain,b,t,i);
+      const nb=document.createElement("button");nb.className="note";nb.textContent=state.notes.filter(n=>n.domain===currentDomain&&n.block===b&&n.topic===t).length?"📝":"＋";
+      nb.onclick=()=>addNote(currentDomain,b,t);
+      row.append(dot,label,nb);body.appendChild(row);
     });
-
-    if (!response.ok) {
-      throw new Error(`Firebase HTTP ${response.status}`);
-    }
-
-    console.log("☁️ Прогресс сохранён в Firebase");
-
-  } catch (e) {
-    console.error("❌ Firebase save:", e);
-    console.log("💾 Используется локальная резервная копия");
+    box.appendChild(body);el.appendChild(box);
   }
 }
-/* ---------- Countdown ---------- */
-function renderCountdown(){
-  const now = new Date();
-  const year = now.getFullYear();
-  const start = new Date(year,0,1);
-  const end = new Date(year,11,31,23,59,59);
-  const msLeft = end - now;
-  const daysLeft = Math.max(0, Math.ceil(msLeft / 86400000));
-  const yearLen = (end - start);
-  const passedFrac = Math.min(1, Math.max(0, (now-start)/yearLen));
-  const pct = Math.round(passedFrac*100);
-  const r = 30, circ = 2*Math.PI*r;
-  const offset = circ * (1-passedFrac);
-  const el = document.getElementById('countdownCard');
-  el.innerHTML = `
-    <div class="ring-wrap">
-      <svg width="74" height="74">
-        <circle class="bg" cx="37" cy="37" r="${r}" stroke-width="6" fill="none"/>
-        <circle class="fg" cx="37" cy="37" r="${r}" stroke-width="6" fill="none" stroke-dasharray="${circ}" stroke-dashoffset="${circ}"/>
-      </svg>
-      <div class="ring-num">${pct}%</div>
-    </div>
-    <div class="countdown-text">
-      <div class="big">До конца ${year} года</div>
-      <div class="days" id="daysCounter">0 дней</div>
-      <div class="date">31 декабря ${year} — год пройден на ${pct}%</div>
-    </div>
-  `;
-  requestAnimationFrame(()=>{ el.querySelector('circle.fg').style.strokeDashoffset = offset; });
-  animateCount(daysLeft);
-}
-function animateCount(target){
-  const elm = document.getElementById('daysCounter');
-  let cur = 0;
-  const step = Math.max(1, Math.round(target/30));
-  const iv = setInterval(()=>{
-    cur += step;
-    if (cur >= target){ cur = target; clearInterval(iv); }
-    elm.textContent = cur + ' ' + dayWord(cur);
-  }, 16);
-}
-function dayWord(n){
-  const n10 = n%10, n100 = n%100;
-  if (n100>=11 && n100<=14) return 'дней';
-  if (n10===1) return 'день';
-  if (n10>=2 && n10<=4) return 'дня';
-  return 'дней';
+
+function cycle(d,b,t,i){
+  if(!unlocked(d,b,i)) return;
+  const cur=state.topics[d][b][t], next=cur==="idle"?"progress":cur==="progress"?"done":"idle";
+  state.topics[d][b][t]=next;
+  if(cur==="idle"&&next==="progress") state.xp[d]+=XP_START;
+  if(cur==="progress"&&next==="done") state.xp[d]+=XP_DONE;
+  if(cur==="done"&&next==="idle") state.xp[d]=Math.max(0,state.xp[d]-XP_START-XP_DONE);
+  save();renderHeader();renderTabs();renderDomains();renderGraph();
+  toast(next==="done"?`✅ ${t} — выучено`:`${t} — ${next==="progress"?"в процессе":"не начато"}`);
 }
 
-/* ---------- Custom milestone countdown (e.g. "До 2027") ---------- */
-function renderMilestone(){
-  const t = state.customTarget;
-  const now = new Date();
-  const end = new Date(t.date + "T23:59:59");
-  const start = new Date(now.getFullYear(), 0, 1);
-  const msLeft = end - now;
-  const daysLeft = Math.max(0, Math.ceil(msLeft / 86400000));
-  const totalSpan = Math.max(1, end - start);
-  const passedFrac = Math.min(1, Math.max(0, (now-start)/totalSpan));
-  const pct = Math.round(passedFrac*100);
-  const r = 30, circ = 2*Math.PI*r;
-  const offset = circ * (1-passedFrac);
-  const el = document.getElementById('milestoneCard');
-  const dateFmt = end.toLocaleDateString('ru-RU', {day:'numeric', month:'long', year:'numeric'});
-  el.innerHTML = `
-    <button class="countdown-edit" onclick="editMilestone()">изменить</button>
-    <div class="ring-wrap">
-      <svg width="74" height="74">
-        <circle class="bg" cx="37" cy="37" r="${r}" stroke-width="6" fill="none"/>
-        <circle class="fg" cx="37" cy="37" r="${r}" stroke-width="6" fill="none" stroke-dasharray="${circ}" stroke-dashoffset="${circ}"/>
-      </svg>
-      <div class="ring-num">${pct}%</div>
-    </div>
-    <div class="countdown-text">
-      <div class="big">${t.label}</div>
-      <div class="days">${daysLeft} ${dayWord(daysLeft)}</div>
-      <div class="date">${dateFmt}</div>
-    </div>
-  `;
-  requestAnimationFrame(()=>{ el.querySelector('circle.fg').style.strokeDashoffset = offset; });
-}
-function editMilestone(){
-  const newLabel = prompt("Название цели-даты:", state.customTarget.label);
-  if (newLabel === null) return;
-  const newDate = prompt("Дата (ГГГГ-ММ-ДД):", state.customTarget.date);
-  if (newDate === null) return;
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(newDate)) { alert("Формат даты: ГГГГ-ММ-ДД, например 2027-01-01"); return; }
-  state.customTarget = { label: newLabel.trim() || "Цель", date: newDate };
-  save();
-  renderMilestone();
-}
-
-/* ---------- XP / Levels ---------- */
-function levelInfo(xp){
-  const level = Math.floor(xp / XP_PER_LEVEL);
-  const into = xp % XP_PER_LEVEL;
-  return { level, into, need: XP_PER_LEVEL };
-}
-function totalXP(){
-  let sum = 0;
-  for (const d in state.xp) sum += state.xp[d];
-  return sum;
-}
-function renderLevel(){
-  const xp = totalXP();
-  const {level, into, need} = levelInfo(xp);
-  const pct = Math.round(into/need*100);
-  const el = document.getElementById('levelCard');
-  let chips = '';
-  for (const domain in DATA) {
-    chips += `<span class="rank-chip">${domain}: <b>${rankForDomain(domain)}</b></span>`;
-  }
-  el.innerHTML = `
-    <div class="level-badge">Уровень ${level}</div>
-    <div class="level-main">
-      <div class="level-row"><span>Общий опыт</span><span>${into}/${need} XP</span></div>
-      <div class="level-bar"><div class="level-bar-fill" style="width:${pct}%"></div></div>
-      <div class="rank-row">${chips}</div>
-    </div>
-  `;
-}
-function awardXP(domain, delta, topicLabel, kind){
-  if (!(domain in state.xp)) state.xp[domain] = 0;
-  const before = levelInfo(state.xp[domain]).level;
-  const beforeTotal = levelInfo(totalXP()).level;
-  state.xp[domain] = Math.max(0, state.xp[domain] + delta);
-  save();
-  renderLevel();
-  const after = levelInfo(state.xp[domain]).level;
-  const afterTotalXP = totalXP();
-  const afterTotal = levelInfo(afterTotalXP).level;
-  if (delta > 0 && topicLabel) {
-    const info = levelInfo(state.xp[domain]);
-    const icon = kind === 'done' ? '✅' : '🔵';
-    const verb = kind === 'done' ? 'выучено' : 'начато';
-    showToast(
-      `${icon} «${topicLabel}» — ${verb}! +${delta} XP` +
-      `<div class="toast-sub">${domain}: уровень ${info.level} · ${info.into}/${info.need} XP до след. уровня</div>`
-    );
-  }
-  if (afterTotal > beforeTotal) {
-    setTimeout(()=> showToast(`🏆 Новый общий уровень: <b>${afterTotal}</b>!`), delta>0 && topicLabel ? 650 : 0);
-  }
-}
-function showToast(html){
-  const wrap = document.getElementById('toastWrap');
-  const t = document.createElement('div');
-  t.className = 'toast';
-  t.innerHTML = html;
-  wrap.appendChild(t);
-  setTimeout(()=> t.remove(), 3600);
-}
-
-/* ---------- Notes / Journal ---------- */
-let noteOpenState = {};
-function toggleNoteOpen(domain, block, topic){
-  const key = domain+"::"+block+"::"+topic;
-  noteOpenState[key] = !noteOpenState[key];
-  renderDomains();
-}
-function addNoteInline(domain, block, topic){
-  const key = domain+"::"+block+"::"+topic;
-  const ta = document.getElementById('noteInput-'+cssKey(key));
-  if (!ta) return;
-  const text = ta.value.trim();
-  if (!text) return;
-  state.notes.push({ id: Date.now().toString(), domain, block, topic, text, ts: Date.now() });
-  save();
-  renderDomains();
-  renderJournal();
-}
-function cssKey(key){ return key.replace(/[^a-zA-Z0-9]/g,'_'); }
-function deleteNote(id){
-  state.notes = state.notes.filter(n=>n.id!==id);
-  save();
-  renderDomains();
-  renderJournal();
-}
-function notesFor(domain, block, topic){
-  return state.notes.filter(n=>n.domain===domain && n.block===block && n.topic===topic);
-}
-function renderJournal(){
-  const el = document.getElementById('journalList');
-  if (!el) return;
-  if (!state.notes.length){
-    el.innerHTML = '<div class="journal-empty">Пока нет ни одной заметки. Открой тему в «Списке» и нажми 📝, чтобы записать, что узнал(а).</div>';
-    return;
-  }
-  const sorted = [...state.notes].sort((a,b)=>b.ts-a.ts);
-  el.innerHTML = '';
-  sorted.forEach(n=>{
-    const d = new Date(n.ts);
-    const dateStr = d.toLocaleDateString('ru-RU',{day:'numeric',month:'long',year:'numeric'}) + ', ' + d.toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'});
-    const row = document.createElement('div');
-    row.className = 'journal-entry';
-    row.innerHTML = `
-      <div class="journal-dot"></div>
-      <div class="journal-body">
-        <div class="journal-path">${n.domain} › ${n.block} › ${n.topic}</div>
-        <div class="journal-text"></div>
-        <div class="journal-date">${dateStr}</div>
-      </div>
-      <button class="journal-del" onclick="deleteNote('${n.id}')">✕</button>
-    `;
-    row.querySelector('.journal-text').textContent = n.text;
-    el.appendChild(row);
-  });
-}
-
-/* ---------- Fullscreen graph (zoom & pan) ---------- */
-let fsScale = 1, fsX = 0, fsY = 0, fsDragging = false, fsStartX = 0, fsStartY = 0;
-function openFullscreenGraph(){
-  const wrap = document.getElementById('graphWrap');
-  const layer = document.getElementById('fsZoomLayer');
-  layer.appendChild(wrap);
-  document.getElementById('fsOverlay').classList.add('open');
-  fsReset();
-  document.addEventListener('keydown', fsKeyHandler);
-}
-function closeFullscreenGraph(){
-  const wrap = document.getElementById('graphWrap');
-  document.getElementById('graphView').appendChild(wrap);
-  document.getElementById('fsOverlay').classList.remove('open');
-  document.removeEventListener('keydown', fsKeyHandler);
-}
-function fsKeyHandler(e){ if (e.key === 'Escape') closeFullscreenGraph(); }
-function fsApply(){
-  const layer = document.getElementById('fsZoomLayer');
-  layer.style.transform = `translate(${fsX}px, ${fsY}px) scale(${fsScale})`;
-}
-function fsZoom(factor){
-  fsScale = Math.min(3, Math.max(0.4, fsScale*factor));
-  fsApply();
-}
-function fsReset(){
-  fsScale = 1; fsX = 0; fsY = 0;
-  fsApply();
-}
-(function initFsCanvasEvents(){
-    const canvas = document.getElementById('fsCanvas');
-    if (!canvas) return;
-    canvas.addEventListener('wheel', (e) => {
-      e.preventDefault();
-      const factor = e.deltaY < 0 ? 1.12 : 0.89;
-      fsScale = Math.min(3, Math.max(0.4, fsScale*factor));
-      fsApply();
-    }, { passive:false });
-    canvas.addEventListener('mousedown', (e) => {
-      fsDragging = true;
-      fsStartX = e.clientX - fsX;
-      fsStartY = e.clientY - fsY;
-      canvas.classList.add('dragging');
-    });
-    window.addEventListener('mousemove', (e) => {
-      if (!fsDragging) return;
-      fsX = e.clientX - fsStartX;
-      fsY = e.clientY - fsStartY;
-      fsApply();
-    });
-    window.addEventListener('mouseup', () => { fsDragging = false; canvas.classList.remove('dragging'); });
-    let touchStartDist = null, touchStartScale = 1;
-    canvas.addEventListener('touchstart', (e) => {
-      if (e.touches.length === 1) {
-        fsDragging = true;
-        fsStartX = e.touches[0].clientX - fsX;
-        fsStartY = e.touches[0].clientY - fsY;
-      } else if (e.touches.length === 2) {
-        fsDragging = false;
-        const dx = e.touches[0].clientX - e.touches[1].clientX;
-        const dy = e.touches[0].clientY - e.touches[1].clientY;
-        touchStartDist = Math.hypot(dx, dy);
-        touchStartScale = fsScale;
-      }
-    }, { passive:true });
-    canvas.addEventListener('touchmove', (e) => {
-      if (e.touches.length === 1 && fsDragging) {
-        fsX = e.touches[0].clientX - fsStartX;
-        fsY = e.touches[0].clientY - fsStartY;
-        fsApply();
-      } else if (e.touches.length === 2 && touchStartDist) {
-        const dx = e.touches[0].clientX - e.touches[1].clientX;
-        const dy = e.touches[0].clientY - e.touches[1].clientY;
-        const dist = Math.hypot(dx, dy);
-        fsScale = Math.min(3, Math.max(0.4, touchStartScale * (dist/touchStartDist)));
-        fsApply();
-      }
-    }, { passive:true });
-    canvas.addEventListener('touchend', () => { fsDragging = false; touchStartDist = null; });
-})();
-
-/* ---------- Goals ---------- */
 function addGoal(){
-  const input = document.getElementById('goalInput');
-  const dateInput = document.getElementById('goalDate');
-  const text = input.value.trim();
-  if (!text) return;
-  state.goals.push({ id: Date.now().toString(), text, date: dateInput.value || null, done:false, subtasks: [] });
-  input.value=''; dateInput.value='';
-  save();
-  renderGoals();
-}
-function toggleGoal(id){
-  const g = state.goals.find(x=>x.id===id);
-  if (g) g.done = !g.done;
-  save();
-  renderGoals();
-}
-function deleteGoal(id){
-  state.goals = state.goals.filter(x=>x.id!==id);
-  save();
-  renderGoals();
-}
-function toggleGoalOpen(id){
-  goalOpenState[id] = !goalOpenState[id];
-  renderGoals();
-}
-function addSubtask(goalId){
-  const input = document.getElementById('subInput-'+goalId);
-  const text = input.value.trim();
-  if (!text) return;
-  const g = state.goals.find(x=>x.id===goalId);
-  if (!g) return;
-  if (!g.subtasks) g.subtasks = [];
-  g.subtasks.push({ id: Date.now().toString(), text, done:false });
-  g.done = false;
-  input.value = '';
-  save();
-  renderGoals();
-}
-function toggleSubtask(goalId, subId){
-  const g = state.goals.find(x=>x.id===goalId);
-  if (!g) return;
-  const s = g.subtasks.find(x=>x.id===subId);
-  if (s) s.done = !s.done;
-  if (g.subtasks.length) g.done = g.subtasks.every(x=>x.done);
-  save();
-  renderGoals();
-}
-function deleteSubtask(goalId, subId){
-  const g = state.goals.find(x=>x.id===goalId);
-  if (!g) return;
-  g.subtasks = g.subtasks.filter(x=>x.id!==subId);
-  save();
-  renderGoals();
-}
-function daysUntil(dateStr){
-  if (!dateStr) return null;
-  const now = new Date(); now.setHours(0,0,0,0);
-  const d = new Date(dateStr); d.setHours(0,0,0,0);
-  return Math.round((d-now)/86400000);
+  const text=document.getElementById("goalInput").value.trim();
+  if(!text)return;
+  state.goals.push({id:Date.now().toString(),text,date:document.getElementById("goalDate").value||null,done:false});
+  document.getElementById("goalInput").value="";document.getElementById("goalDate").value="";
+  save();renderGoals();
 }
 function renderGoals(){
-  const listEl = document.getElementById('goalsList');
-  const cntEl = document.getElementById('goalsCnt');
-  const doneCount = state.goals.filter(g=>g.done).length;
-  cntEl.textContent = state.goals.length ? `${doneCount}/${state.goals.length}` : '';
-  if (!state.goals.length){
-    listEl.innerHTML = '<div class="goals-empty">Пока нет ни одной цели — добавь первую выше.</div>';
-    return;
+  const el=document.getElementById("goalsList");el.innerHTML="";
+  for(const g of state.goals){
+    const row=document.createElement("div");row.className="goal"+(g.done?" done":"");
+    const cb=document.createElement("input");cb.type="checkbox";cb.checked=g.done;
+    cb.onchange=()=>{g.done=cb.checked;save();renderGoals()};
+    const main=document.createElement("div");main.className="goal-main";main.textContent=g.text+(g.date?` · ${g.date}`:"");
+    const del=document.createElement("button");del.className="goal-del";del.textContent="✕";
+    del.onclick=()=>{state.goals=state.goals.filter(x=>x.id!==g.id);save();renderGoals()};
+    row.append(cb,main,del);el.appendChild(row);
   }
-  const sorted = [...state.goals].sort((a,b)=>{
-    if (a.done !== b.done) return a.done ? 1 : -1;
-    if (!a.date) return 1;
-    if (!b.date) return -1;
-    return new Date(a.date) - new Date(b.date);
-  });
-  listEl.innerHTML = '';
-  sorted.forEach(g=>{
-    const du = daysUntil(g.date);
-    let meta = '';
-    if (g.date){
-      if (du === null) meta = '';
-      else if (du < 0) meta = `просрочено на ${Math.abs(du)} дн.`;
-      else if (du === 0) meta = 'сегодня';
-      else meta = `через ${du} ${dayWord(du)} · ${g.date}`;
-    }
-    const subs = g.subtasks || [];
-    const subDone = subs.filter(s=>s.done).length;
-    const subPct = subs.length ? Math.round(subDone/subs.length*100) : 0;
-    const isOpen = !!goalOpenState[g.id];
-
-    const wrap = document.createElement('div');
-    const row = document.createElement('div');
-    row.className = 'goal-item' + (g.done?' done':'');
-    row.innerHTML = `
-      <div class="goal-check ${g.done?'done':''}" onclick="toggleGoal('${g.id}')"></div>
-      <div class="goal-main">
-        <div class="goal-text">${g.text}</div>
-        ${meta ? `<div class="goal-meta ${(du!==null && du<=7 && du>=0 && !g.done)?'soon':''}">${meta}</div>` : ''}
-        ${subs.length ? `<div class="goal-sub-bar"><div class="goal-sub-bar-fill" style="width:${subPct}%"></div></div>` : ''}
-      </div>
-      <button class="goal-expand ${isOpen?'open':''}" onclick="toggleGoalOpen('${g.id}')" title="Из чего состоит цель">${subs.length ? `${subDone}/${subs.length} ▸` : '+ пункты ▸'}</button>
-      <button class="goal-del" onclick="deleteGoal('${g.id}')">✕</button>
-    `;
-    wrap.appendChild(row);
-
-    const subWrap = document.createElement('div');
-    subWrap.className = 'goal-subwrap' + (isOpen ? ' open' : '');
-    let subsHtml = '';
-    subs.forEach(s=>{
-      subsHtml += `
-        <div class="sub-item ${s.done?'done':''}">
-          <div class="sub-check ${s.done?'done':''}" onclick="toggleSubtask('${g.id}','${s.id}')"></div>
-          <div class="sub-text">${s.text}</div>
-          <button class="sub-del" onclick="deleteSubtask('${g.id}','${s.id}')">✕</button>
-        </div>`;
-    });
-    subsHtml += `
-      <div class="sub-add">
-        <input type="text" id="subInput-${g.id}" placeholder="Что входит в эту цель?" onkeydown="if(event.key==='Enter')addSubtask('${g.id}')" />
-        <button onclick="addSubtask('${g.id}')">+</button>
-      </div>`;
-    subWrap.innerHTML = subsHtml;
-    wrap.appendChild(subWrap);
-
-    listEl.appendChild(wrap);
-  });
+  if(!state.goals.length) el.innerHTML='<div class="small">Пока нет целей.</div>';
 }
 
-/* ---------- Topics: stats ---------- */
-function domainStats(domain){
-  let done=0, total=0;
-  for (const block in DATA[domain]) {
-    DATA[domain][block].forEach(t => { total++; if (state.topics[domain][block][t] === 'done') done++; });
-  }
-  return {done, total};
+function addNote(d,b,t){
+  const text=prompt(`Заметка по теме:\n${t}`);
+  if(!text?.trim())return;
+  state.notes.push({id:Date.now().toString(),domain:d,block:b,topic:t,text:text.trim(),ts:Date.now()});
+  save();renderJournal();renderDomains();toast("📝 Заметка сохранена");
 }
-function blockStats(domain, block){
-  let done=0, total=DATA[domain][block].length;
-  DATA[domain][block].forEach(t => { if (state.topics[domain][block][t]==='done') done++; });
-  return {done, total};
-}
-function overallStats(){
-  let done=0, total=0;
-  for (const domain in DATA) { const s = domainStats(domain); done+=s.done; total+=s.total; }
-  return {done, total};
-}
-function renderTabs() {
-  const tEl = document.getElementById('tabs');
-  tEl.innerHTML = '';
-  for (const domain in DATA) {
-    const {done, total} = domainStats(domain);
-    const rank = rankForDomain(domain);
-    const tab = document.createElement('div');
-    tab.className = 'tab' + (domain === currentDomain ? ' active' : '');
-    tab.innerHTML = `${domain} <span class="cnt">${done}/${total} · ${rank}</span>`;
-    tab.onclick = () => { currentDomain = domain; renderTabs(); renderDomains(); };
-    tEl.appendChild(tab);
+function renderJournal(){
+  const el=document.getElementById("journalList");el.innerHTML="";
+  const notes=[...state.notes].sort((a,b)=>b.ts-a.ts);
+  if(!notes.length){el.innerHTML='<div class="small">Заметок пока нет.</div>';return}
+  for(const n of notes){
+    const row=document.createElement("div");row.className="journal-item";
+    row.innerHTML=`<div class="journal-path">${escapeHtml(n.domain)} › ${escapeHtml(n.block)} › ${escapeHtml(n.topic)}</div><div class="journal-text">${escapeHtml(n.text)}</div><div class="small">${new Date(n.ts).toLocaleString("ru-RU")}</div>`;
+    el.appendChild(row);
   }
 }
-function spawnConfetti(dotEl){
-  const colors = ['#a97a2e','#5f7d56','#b0592a'];
-  for (let i=0;i<8;i++){
-    const p = document.createElement('span');
-    p.className = 'confetti-piece';
-    const angle = Math.random()*Math.PI*2;
-    const dist = 18+Math.random()*16;
-    p.style.setProperty('--dx', Math.cos(angle)*dist+'px');
-    p.style.setProperty('--dy', Math.sin(angle)*dist+'px');
-    p.style.setProperty('--rot', (Math.random()*360)+'deg');
-    p.style.background = colors[i%colors.length];
-    dotEl.parentElement.appendChild(p);
-    setTimeout(()=>p.remove(), 750);
-  }
-}
-function cycle(domain, block, topic, dotEl, idx) {
-  if (!isUnlocked(domain, block, idx)) return;
-  const cur = state.topics[domain][block][topic];
-  const stIdx = STATES.indexOf(cur);
-  const next = STATES[(stIdx+1)%STATES.length];
-  state.topics[domain][block][topic] = next;
-  save();
-  if (next === 'done' && dotEl) spawnConfetti(dotEl);
-  applyTopicXP(domain, cur, next, topic);
-  renderDomains();
-  renderTabs();
-  updateOverall();
-  if (currentView==='graph') renderGraph();
-}
-function applyTopicXP(domain, from, to, topic){
-  if (from === 'idle' && to === 'progress') awardXP(domain, XP_START, topic, 'progress');
-  else if (from === 'progress' && to === 'done') awardXP(domain, XP_DONE, topic, 'done');
-  else if (from === 'done' && to === 'idle') awardXP(domain, -(XP_START+XP_DONE), null, null);
-}
-function toggleBlock(key) { blockOpenState[key] = !blockOpenState[key]; renderDomains(); }
-function expandAll(){ for (const k in blockOpenState) blockOpenState[k]=true; renderDomains(); }
-function collapseAll(){ for (const k in blockOpenState) blockOpenState[k]=false; renderDomains(); }
-function updateOverall(){
-  const {done, total} = overallStats();
-  const pct = total ? Math.round(done/total*100) : 0;
-  document.getElementById('overallPct').textContent = pct + '%';
-  document.getElementById('overallBar').style.width = pct + '%';
-  document.getElementById('overallCount').textContent = `${done}/${total}`;
-}
-function renderDomains() {
-  const dEl = document.getElementById('domains');
-  dEl.innerHTML = '';
-  const domain = currentDomain;
-  const domDiv = document.createElement('div');
-  domDiv.className = 'domain active';
-  let i=0;
-  for (const block in DATA[domain]) {
-    const key = domain + "::" + block;
-    const {done, total} = blockStats(domain, block);
-    const pct = Math.round(done/total*100);
-    const isOpen = blockOpenState[key];
-    const blockDiv = document.createElement('div');
-    blockDiv.className = 'block' + (isOpen ? ' open' : '');
-    blockDiv.style.animationDelay = (i*0.03)+'s';
-    i++;
-    const head = document.createElement('div');
-    head.className = 'block-head';
-    head.innerHTML = `<span class="arrow">▶</span><span class="btitle">${block}</span><span class="bpct">${done}/${total}</span>`;
-    head.onclick = () => toggleBlock(key);
-    blockDiv.appendChild(head);
-    const bar = document.createElement('div');
-    bar.className = 'block-bar';
-    bar.innerHTML = `<div class="block-bar-fill" style="width:${pct}%"></div>`;
-    blockDiv.appendChild(bar);
-    const body = document.createElement('div');
-    body.className = 'block-body';
-    DATA[domain][block].forEach((topic, idx) => {
-      const s = state.topics[domain][block][topic];
-      const unlocked = isUnlocked(domain, block, idx);
-      const key = domain+"::"+block+"::"+topic;
-      const row = document.createElement('div');
-      row.className = 'micro state-' + (unlocked ? s : 'locked');
-      const dot = document.createElement('div');
-      dot.className = 'dot ' + (unlocked ? s : '');
-      if (unlocked) dot.onclick = () => cycle(domain, block, topic, dot, idx);
-      const label = document.createElement('div');
-      label.className = 'micro-label';
-      label.textContent = topic;
-      label.style.flex = '1';
-      if (unlocked) label.onclick = () => cycle(domain, block, topic, dot, idx);
-      row.appendChild(dot);
-      row.appendChild(label);
-      const topicNotes = notesFor(domain, block, topic);
-      const isNoteOpen = !!noteOpenState[key];
-      const noteBtn = document.createElement('button');
-      noteBtn.className = 'note-btn' + (topicNotes.length ? ' has-notes' : '');
-      noteBtn.title = 'Заметки к теме';
-      noteBtn.textContent = topicNotes.length ? `📝 ${topicNotes.length}` : '📝';
-      noteBtn.onclick = (e) => { e.stopPropagation(); toggleNoteOpen(domain, block, topic); };
-      row.appendChild(noteBtn);
-      body.appendChild(row);
 
-      const panel = document.createElement('div');
-      panel.className = 'note-panel' + (isNoteOpen ? ' open' : '');
-      if (isNoteOpen) {
-        const ck = cssKey(key);
-        topicNotes.slice().sort((a,b)=>b.ts-a.ts).forEach(n=>{
-          const entry = document.createElement('div');
-          entry.className = 'note-entry';
-          const del = document.createElement('button');
-          del.className = 'note-del';
-          del.textContent = '✕';
-          del.onclick = () => deleteNote(n.id);
-          const textDiv = document.createElement('div');
-          textDiv.textContent = n.text;
-          const dateDiv = document.createElement('div');
-          dateDiv.className = 'note-date';
-          dateDiv.textContent = new Date(n.ts).toLocaleDateString('ru-RU',{day:'numeric',month:'long',year:'numeric'});
-          entry.appendChild(del);
-          entry.appendChild(textDiv);
-          entry.appendChild(dateDiv);
-          panel.appendChild(entry);
-        });
-        const addWrap = document.createElement('div');
-        addWrap.className = 'note-add';
-        const ta = document.createElement('textarea');
-        ta.id = 'noteInput-'+ck;
-        ta.placeholder = 'Что узнал(а) по этой теме?';
-        const saveBtn = document.createElement('button');
-        saveBtn.textContent = 'Сохранить заметку';
-        saveBtn.onclick = () => addNoteInline(domain, block, topic);
-        addWrap.appendChild(ta);
-        addWrap.appendChild(saveBtn);
-        panel.appendChild(addWrap);
-      }
-      body.appendChild(panel);
-    });
-    blockDiv.appendChild(body);
-    domDiv.appendChild(blockDiv);
-  }
-  dEl.appendChild(domDiv);
-}
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
 
-/* ---------- Graph (Obsidian-style web) ---------- */
 function renderGraph(){
-  const domains = Object.keys(DATA);
-  const W = 1200, H = 1200, cx = W/2, cy = H/2;
-  const R0 = 90;   // center -> domain
-  const R1 = 190;  // domain -> block
-  const R2 = 160;  // block -> topic
-  const domainAngleStep = 360/domains.length;
-  const domainStartAngle = -90;
-
-  let svg = `<svg viewBox="0 0 ${W} ${H}" width="${Math.min(W,1140)}" height="${Math.min(H,1140)}" xmlns="http://www.w3.org/2000/svg">`;
-  let nodesSvg = '';
-  let linesSvg = '';
-
-  function toXY(angleDeg, r){
-    const a = angleDeg * Math.PI/180;
-    return [cx + r*Math.cos(a), cy + r*Math.sin(a)];
-  }
-
-  // center node
-  const [ccx, ccy] = [cx, cy];
-  nodesSvg += `<circle class="gnode" cx="${ccx}" cy="${ccy}" r="13" fill="#a97a2e"/>`;
-  nodesSvg += `<text class="gnode-label" x="${ccx}" y="${ccy-20}" font-size="17" text-anchor="middle" fill="#24261f" font-weight="600">Я</text>`;
-
-  domains.forEach((domain, di) => {
-    const domainAngle = domainStartAngle + di*domainAngleStep;
-    const [dx, dy] = toXY(domainAngle, R0);
-    linesSvg += `<line class="gline" x1="${ccx}" y1="${ccy}" x2="${dx}" y2="${dy}"/>`;
-    const {done, total} = domainStats(domain);
-    const dPct = total ? done/total : 0;
-    nodesSvg += `<g class="gnode-g" style="animation-delay:${(di*0.6).toFixed(2)}s"><circle class="gnode" cx="${dx}" cy="${dy}" r="10" fill="${dPct>=1?'#5f7d56':(dPct>0?'#b0592a':'#8b8f83')}"/></g>`;
-    const labelAnchor = Math.cos(domainAngle*Math.PI/180) >= 0 ? 'start' : 'end';
-    const lx = dx + (labelAnchor==='start'? 14 : -14);
-    nodesSvg += `<text class="gnode-label" x="${lx}" y="${dy+5}" font-size="16" text-anchor="${labelAnchor}" fill="#24261f" font-weight="600">${domain}</text>`;
-    nodesSvg += `<text class="gnode-label" x="${lx}" y="${dy+21}" font-size="11" text-anchor="${labelAnchor}" fill="#a97a2e">${rankForDomain(domain)}</text>`;
-
-    const blocks = Object.keys(DATA[domain]);
-    const sectorWidth = 100;
-    blocks.forEach((block, bi) => {
-      const blockAngle = domainAngle - sectorWidth/2 + sectorWidth*(bi+0.5)/blocks.length;
-      const [bx, by] = toXY(blockAngle, R0+R1);
-      linesSvg += `<line class="gline" x1="${dx}" y1="${dy}" x2="${bx}" y2="${by}"/>`;
-      const bs = blockStats(domain, block);
-      const bPct = bs.total ? bs.done/bs.total : 0;
-      nodesSvg += `<g class="gnode-g" style="animation-delay:${(bi*0.5).toFixed(2)}s"><circle class="gnode" cx="${bx}" cy="${by}" r="6.5" fill="${bPct>=1?'#5f7d56':(bPct>0?'#b0592a':'#c7c9be')}"><title>${block} (${bs.done}/${bs.total})</title></circle></g>`;
-      const bAnchor = Math.cos(blockAngle*Math.PI/180) >= 0 ? 'start' : 'end';
-      const blx = bx + (bAnchor==='start'? 9 : -9);
-      nodesSvg += `<text class="gnode-label" x="${blx}" y="${by+3.5}" font-size="13" text-anchor="${bAnchor}" fill="#4d5147">${block}</text>`;
-
-      const topics = DATA[domain][block];
-      const topicSector = 26;
-      topics.forEach((topic, ti) => {
-        const posKey = domain+"::"+block+"::"+topic;
-        const override = state.graphPos[posKey];
-        const topicAngle = blockAngle - topicSector/2 + topicSector*(ti+0.5)/topics.length;
-        let [tx, ty] = toXY(topicAngle, R0+R1+R2);
-        if (override) { tx = override.x; ty = override.y; }
-        const s = state.topics[domain][block][topic];
-        const unlocked = isUnlocked(domain, block, ti);
-        const nextUp = unlocked && s === 'idle';
-        const color = unlocked ? STATUS_COLOR[s] : '#e3e2db';
-        const pulseClass = s === 'progress' ? 'pulse-progress' : (nextUp ? 'pulse-next' : '');
-        const dq = domain.replace(/'/g,"\\'"), bq = block.replace(/'/g,"\\'"), tq = topic.replace(/'/g,"\\'");
-        const clickAttr = unlocked ? `onclick="graphCycle('${dq}','${bq}','${tq}', this)"` : '';
-        const noteCount = notesFor(domain, block, topic).length;
-        const titleText = (unlocked ? topic : topic + ' (заблокировано — заверши предыдущий шаг)') + (noteCount ? ` · ${noteCount} 📝` : '') + ' — перетащи, чтобы переместить; ПКМ / долгое нажатие — заметка';
-        const dashArr = unlocked ? '' : 'stroke-dasharray="2,2"';
-        linesSvg += `<line class="gline" data-b="${escAttr(posKey)}" x1="${bx}" y1="${by}" x2="${tx}" y2="${ty}" stroke="${unlocked?STATUS_COLOR[s]:'#d5d4cc'}" stroke-opacity="${unlocked?(s==='idle'?0.35:0.7):0.25}" ${dashArr}/>`;
-        const delay = ((di*7 + bi*3 + ti) % 11) * 0.35;
-        const dragAttrs = `onmousedown="startNodeDrag(event,this,'${dq}','${bq}','${tq}')" ontouchstart="startNodeDrag(event,this,'${dq}','${bq}','${tq}')" oncontextmenu="openGraphNoteModal(event,'${dq}','${bq}','${tq}')"`;
-        nodesSvg += `<g class="gnode-g" style="animation-delay:${delay.toFixed(2)}s"><circle class="gnode ${unlocked?'':'locked'} ${pulseClass}" data-d="${domain}" data-b="${block}" data-t="${ti}" data-key="${escAttr(posKey)}" cx="${tx}" cy="${ty}" r="4.4" fill="${color}" ${clickAttr} ${dragAttrs}><title>${titleText}</title></circle>${noteCount ? `<circle cx="${tx+6.5}" cy="${ty-6.5}" r="2.6" fill="#a97a2e" style="pointer-events:none"/>` : ''}</g>`;
-      });
-    });
-  });
-
-  svg += linesSvg + nodesSvg + '</svg>';
-  document.getElementById('graphWrap').innerHTML = svg;
-}
-function escAttr(s){ return String(s).replace(/"/g,'&quot;'); }
-function graphCycle(domain, block, topic, circleEl){
-  const key = domain+"::"+block+"::"+topic;
-  if (suppressClickFor === key) { suppressClickFor = null; return; }
-  const idx = DATA[domain][block].indexOf(topic);
-  if (!isUnlocked(domain, block, idx)) return;
-  const cur = state.topics[domain][block][topic];
-  const stIdx = STATES.indexOf(cur);
-  const next = STATES[(stIdx+1)%STATES.length];
-  state.topics[domain][block][topic] = next;
-  save();
-  applyTopicXP(domain, cur, next, topic);
-  renderTabs();
-  updateOverall();
-  renderGraph();
-}
-
-/* ---------- Graph node dragging ---------- */
-let dragState = null;
-let suppressClickFor = null;
-function svgPointFrom(svg, clientX, clientY){
-  const pt = svg.createSVGPoint();
-  pt.x = clientX; pt.y = clientY;
-  const ctm = svg.getScreenCTM();
-  if (!ctm) return {x:clientX, y:clientY};
-  const p = pt.matrixTransform(ctm.inverse());
-  return {x:p.x, y:p.y};
-}
-function evPoint(e){ return (e.touches && e.touches.length) ? e.touches[0] : e; }
-function startNodeDrag(e, circle, domain, block, topic){
-  if (e.button !== undefined && e.button !== 0 && e.type === 'mousedown') return;
-  e.stopPropagation();
-  const svg = circle.ownerSVGElement;
-  const key = domain+"::"+block+"::"+topic;
-  const p0 = evPoint(e);
-  const startPt = svgPointFrom(svg, p0.clientX, p0.clientY);
-  const origCx = parseFloat(circle.getAttribute('cx'));
-  const origCy = parseFloat(circle.getAttribute('cy'));
-  const line = svg.querySelector(`line[data-b="${key.replace(/"/g,'\\"')}"]`);
-  const lineOrig = line ? {x2: parseFloat(line.getAttribute('x2')), y2: parseFloat(line.getAttribute('y2'))} : null;
-  dragState = { svg, circle, key, domain, block, topic, startPt, origCx, origCy, line, lineOrig, moved:false, longPress:false };
-  dragState.longPressTimer = setTimeout(()=>{
-    if (dragState && !dragState.moved) {
-      dragState.longPress = true;
-      openGraphNoteModal(null, domain, block, topic);
+  const el=document.getElementById("graph");
+  const W=1000,H=700,cx=500,cy=350;
+  let out=`<svg viewBox="0 0 ${W} ${H}" width="100%" height="700" xmlns="http://www.w3.org/2000/svg">`;
+  const domains=Object.keys(DATA);
+  out+=`<circle cx="${cx}" cy="${cy}" r="24" fill="#a97a2e"/><text x="${cx}" y="${cy-38}" text-anchor="middle" font-size="20">Я</text>`;
+  domains.forEach((d,di)=>{
+    const a=(di*2*Math.PI/domains.length)-Math.PI/2, dx=cx+120*Math.cos(a),dy=cy+120*Math.sin(a);
+    out+=`<line x1="${cx}" y1="${cy}" x2="${dx}" y2="${dy}" stroke="#c7c9be"/>`;
+    out+=`<circle cx="${dx}" cy="${dy}" r="14" fill="${rankForDomain(d)==="Новичок"?"#8b8f83":"#5f7d56"}"/>`;
+    out+=`<text x="${dx+(Math.cos(a)>=0?20:-20)}" y="${dy+4}" text-anchor="${Math.cos(a)>=0?"start":"end"}" font-size="16">${escapeHtml(d)}</text>`;
+    let bi=0;
+    for(const b in DATA[d]){
+      const ba=a-0.45+0.9*(bi+0.5)/Object.keys(DATA[d]).length;
+      const bx=cx+260*Math.cos(ba),by=cy+260*Math.sin(ba);
+      out+=`<line x1="${dx}" y1="${dy}" x2="${bx}" y2="${by}" stroke="#dedcd4"/>`;
+      out+=`<circle cx="${bx}" cy="${by}" r="7" fill="#c7c9be"><title>${escapeHtml(b)}</title></circle>`;
+      bi++;
     }
-  }, 550);
-  document.addEventListener('mousemove', onNodeDragMove);
-  document.addEventListener('mouseup', onNodeDragEnd);
-  document.addEventListener('touchmove', onNodeDragMove, {passive:false});
-  document.addEventListener('touchend', onNodeDragEnd);
-}
-function onNodeDragMove(e){
-  if (!dragState) return;
-  const p = evPoint(e);
-  const pt = svgPointFrom(dragState.svg, p.clientX, p.clientY);
-  const dx = pt.x - dragState.startPt.x;
-  const dy = pt.y - dragState.startPt.y;
-  if (Math.abs(dx) > 2.5 || Math.abs(dy) > 2.5) {
-    dragState.moved = true;
-    clearTimeout(dragState.longPressTimer);
-  }
-  if (!dragState.moved) return;
-  if (e.cancelable) e.preventDefault();
-  const newCx = dragState.origCx + dx;
-  const newCy = dragState.origCy + dy;
-  dragState.circle.setAttribute('cx', newCx);
-  dragState.circle.setAttribute('cy', newCy);
-  if (dragState.line && dragState.lineOrig) {
-    dragState.line.setAttribute('x2', dragState.lineOrig.x2 + dx);
-    dragState.line.setAttribute('y2', dragState.lineOrig.y2 + dy);
-  }
-}
-function onNodeDragEnd(e){
-  if (!dragState) return;
-  clearTimeout(dragState.longPressTimer);
-  const { key, circle, moved, longPress } = dragState;
-  if (moved) {
-    state.graphPos[key] = { x: parseFloat(circle.getAttribute('cx')), y: parseFloat(circle.getAttribute('cy')) };
-    save();
-  }
-  if (moved || longPress) {
-    suppressClickFor = key;
-    setTimeout(()=>{ if (suppressClickFor===key) suppressClickFor=null; }, 80);
-  }
-  document.removeEventListener('mousemove', onNodeDragMove);
-  document.removeEventListener('mouseup', onNodeDragEnd);
-  document.removeEventListener('touchmove', onNodeDragMove);
-  document.removeEventListener('touchend', onNodeDragEnd);
-  if (moved) renderGraph();
-  dragState = null;
-}
-function resetGraphLayout(){
-  state.graphPos = {};
-  save();
-  renderGraph();
-}
-
-/* ---------- Note modal from graph ---------- */
-let gnModalKey = null;
-function openGraphNoteModal(e, domain, block, topic){
-  if (e && e.preventDefault) e.preventDefault();
-  gnModalKey = { domain, block, topic };
-  document.getElementById('gnModalTitle').textContent = topic;
-  renderGraphNoteModalNotes();
-  document.getElementById('gnModalBackdrop').classList.add('open');
-}
-function closeGraphNoteModal(){
-  document.getElementById('gnModalBackdrop').classList.remove('open');
-  gnModalKey = null;
-}
-function renderGraphNoteModalNotes(){
-  const wrap = document.getElementById('gnModalNotes');
-  wrap.innerHTML = '';
-  if (!gnModalKey) return;
-  const notes = notesFor(gnModalKey.domain, gnModalKey.block, gnModalKey.topic).slice().sort((a,b)=>b.ts-a.ts);
-  if (!notes.length){
-    const empty = document.createElement('div');
-    empty.className = 'journal-empty';
-    empty.textContent = 'Пока нет заметок по этой теме.';
-    wrap.appendChild(empty);
-    return;
-  }
-  notes.forEach(n=>{
-    const entry = document.createElement('div');
-    entry.className = 'note-entry';
-    const del = document.createElement('button');
-    del.className = 'note-del';
-    del.textContent = '✕';
-    del.onclick = () => { deleteNote(n.id); renderGraphNoteModalNotes(); };
-    const textDiv = document.createElement('div');
-    textDiv.textContent = n.text;
-    const dateDiv = document.createElement('div');
-    dateDiv.className = 'note-date';
-    dateDiv.textContent = new Date(n.ts).toLocaleDateString('ru-RU',{day:'numeric',month:'long',year:'numeric'});
-    entry.appendChild(del);
-    entry.appendChild(textDiv);
-    entry.appendChild(dateDiv);
-    wrap.appendChild(entry);
   });
-}
-function saveGraphNote(){
-  if (!gnModalKey) return;
-  const ta = document.getElementById('gnModalInput');
-  const text = ta.value.trim();
-  if (!text) return;
-  state.notes.push({ id: Date.now().toString(), domain: gnModalKey.domain, block: gnModalKey.block, topic: gnModalKey.topic, text, ts: Date.now() });
-  ta.value = '';
-  save();
-  renderGraphNoteModalNotes();
-  renderJournal();
-  renderGraph();
+  out+="</svg>";
+  el.innerHTML=out;
 }
 
-load();
+function setView(v){
+  currentView=v;
+  document.querySelectorAll(".vtab").forEach(x=>x.classList.toggle("active",x.dataset.view===v));
+  document.getElementById("listView").hidden=v!=="list";
+  document.getElementById("graphView").hidden=v!=="graph";
+  document.getElementById("journalView").hidden=v!=="journal";
+  if(v==="graph")renderGraph();
+  if(v==="journal")renderJournal();
+}
+
+document.querySelectorAll(".vtab").forEach(b=>b.onclick=()=>setView(b.dataset.view));
+document.getElementById("addGoalBtn").onclick=addGoal;
+
+document.getElementById("loginBtn").onclick=async()=>{
+  const email=document.getElementById("loginEmail").value.trim();
+  const password=document.getElementById("loginPassword").value;
+  const err=document.getElementById("loginError");
+  if(!email||!password){err.textContent="Введи email и пароль";return}
+  try{
+    err.textContent="Вход...";
+    await signInWithEmailAndPassword(auth,email,password);
+    err.textContent="";
+  }catch(e){
+    console.error(e);err.textContent="Ошибка входа: проверь email и пароль.";
+  }
+};
+document.getElementById("logoutBtn").onclick=()=>signOut(auth);
+
+async function afterLogin(user){
+  document.getElementById("loginOverlay").hidden=true;
+  document.getElementById("app").hidden=false;
+  document.getElementById("userLabel").textContent=user.email;
+  state=blankState();
+  await loadCloud();
+  renderHeader();renderTabs();renderDomains();renderGoals();renderJournal();renderGraph();
+  document.getElementById("saveState").textContent="☁️ Прогресс синхронизирован с твоим аккаунтом";
+}
+onAuthStateChanged(auth, async user=>{
+  if(user){await afterLogin(user)}
+  else{
+    document.getElementById("loginOverlay").hidden=false;
+    document.getElementById("app").hidden=true;
+  }
+});
 </script>
 </body>
 </html>
+'''
+
+path = Path("/mnt/data/index.html")
+path.write_text(html, encoding="utf-8")
+print(f"Готово: {path}")
+
