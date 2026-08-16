@@ -1,5 +1,4 @@
 from pathlib import Path
-
 html = r'''<!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -60,6 +59,15 @@ input[type=text]{flex:1;min-width:180px}
 .toast{background:#24261f;color:#fff;padding:10px 14px;border-radius:7px;margin-bottom:7px;font:12px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
 @media(max-width:700px){body{padding:14px 10px 40px}.level{align-items:flex-start}.topbar{justify-content:space-between}.card{padding:12px}}
 </style>
+  loginOverlay {
+  display: flex !important;
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 999999 !important;
+  background: #eeede8 !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
 </head>
 <body>
 
